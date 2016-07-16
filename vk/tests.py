@@ -3,7 +3,7 @@ import unittest
 from .vkapi import VkApi
 from .custom_api import PublicApiCommands
 from .exceptions import VkApiError
-from .commands import get_group_domen
+from .commands import get_group_domen, get_group_domen_and_title
 
 
 class Public:
@@ -62,12 +62,7 @@ class TestComplexRequests(unittest.TestCase):
 class TestPublicApiCommands(unittest.TestCase):
     def setUp(self):
         self.public = PublicApiCommands(access_token="", v="5.52",
-                                        domen_name=test_public.domen_name)
-
-    def test_get_group_domen(self):
-        domen_name = test_public.domen_name
-        domen = get_group_domen(domen_name)
-        self.assertEqual(domen, test_public.domen)
+                                        domen=test_public.domen)
 
     def test_get_group_domen_in_apicontext(self):
         self.assertEqual(self.public.domen, test_public.domen)
@@ -81,7 +76,7 @@ class TestPublicApiCommands(unittest.TestCase):
 
     def test_get_post_list_big_pub(self):
         big_public_api = PublicApiCommands(access_token="", v="5.52",
-                                           domen_name=big_public.domen_name)
+                                           domen=big_public.domen)
 
         items = big_public_api.get_post_list(300)
         self.assertEqual(len(items), 300)
@@ -97,6 +92,19 @@ class TestPublicApiCommands(unittest.TestCase):
         comments = self.public.get_comments_from_post_list(posts)
         self.assertTrue(len(comments) > 0)
         self.assertTrue("likes" in comments[0])
+
+
+class TestCommands(unittest.TestCase):
+    def test_get_group_domen(self):
+        domen_name = test_public.domen_name
+        domen = get_group_domen(domen_name)
+        self.assertEqual(domen, test_public.domen)
+
+    def test_get_group_domen_and_title(self):
+        domen_name = test_public.domen_name
+        domen, title = get_group_domen_and_title(domen_name)
+        self.assertEqual(domen, test_public.domen)
+
 
 if __name__ == '__main__':
     unittest.main()

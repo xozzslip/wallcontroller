@@ -1,12 +1,10 @@
 from .vkapi import VkApi
-from .commands import get_group_domen
 
 
 class PublicApiCommands:
-    def __init__(self, access_token, v, domen_name):
+    def __init__(self, access_token, v, domen):
         self.connection = VkApi(access_token, v)
-        self.domen_name = domen_name
-        self.domen = get_group_domen(domen_name)
+        self.domen = domen
 
     def get_post_list(self, count):
         method = "wall.get"
