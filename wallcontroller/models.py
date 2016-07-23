@@ -5,16 +5,15 @@ from vk.commands import get_group_domen_and_title
 
 
 class Community(models.Model):
-    url = models.CharField(max_length=300)
+    url = models.CharField(max_length=300, null=True, blank=True)
     moderator = models.ForeignKey("ModeratorAccount", null=True, blank=True)
     domen = models.CharField(max_length=300, null=True, blank=True)
-    domen_name = models.CharField(max_length=300, null=True, blank=True)
+    domen_name = models.CharField(max_length=300)
     title = models.CharField(max_length=300, null=True, blank=True)
     user_owner = models.ForeignKey(User)
 
     def save(self):
-        domen, title = get_group_domen_and_title
-        (self.domen_name)
+        domen, title = get_group_domen_and_title(self.domen_name)
         self.domen = domen
         self.title = title
         super().save()
