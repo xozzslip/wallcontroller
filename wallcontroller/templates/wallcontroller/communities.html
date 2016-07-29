@@ -2,6 +2,17 @@
 
 {% block title %}Communitites{% endblock %}
 
-{% block content %}
+{% block content %} 
+{% verbatim %}
+<div ng-controller="CommunityListController">
 
+  <ul>
+    <li ng-repeat="phone in phones">
+      <span>{{phone.name}}</span>
+      <p>{{phone.snippet}}</p>
+    </li>
+  </ul>
+
+</div>
+{% endverbatim %}
 {% endblock %}
