@@ -4,12 +4,28 @@ from django.contrib.auth.models import User
 from .serializers import CommunitySerializer
 from .models import Community
 
+from vk.exceptions import CommunityDoesNotExist
+from vk.tests import TEST_PUBLIC
+
+
+def setUpModule():
+    global TEST_USER
+    TEST_USER = User(username="kek", password="kokok1", email="k@k.com")
+    TEST_USER.save()
+
 
 class SerializersTestCase(TestCase):
-    def setUp(self):
-        self.user = User(username="kek", password="kokkokok1", email="k@k.com")
-
     def test_community_setializer(self):
-        community = Community(url="ff", domen_name="ff", user_owner=self.user)
+        community = Community(url="ff", domen_name="ff", user_owner=TEST_USER)
         serializer = CommunitySerializer(community)
         self.assertTrue(len(serializer.data) > 0)
+
+
+class CommunityCreateTestCase(TestCase):
+    def test_community_creation(self):
+        invalid_domen = "fsdgeroig23gv893veri32"
+        community = Community(domen_name=invalid_domen, user_owner=TEST_USER)
+        with self.assertRaises(CommunityDoesNotExist):
+            community.save()
+        community.domen_name = TEST_PUBLIC.domen_name
+        community.save()

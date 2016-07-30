@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-from vk.commands import get_group_domen_and_title
+from vk.commands import get_group
 
 
 class Community(models.Model):
@@ -10,12 +10,13 @@ class Community(models.Model):
     domen = models.CharField(max_length=300, null=True, blank=True)
     domen_name = models.CharField(max_length=300)
     title = models.CharField(max_length=300, null=True, blank=True)
+    pic_url = models.CharField(max_length=300, null=True, blank=True)
     user_owner = models.ForeignKey(User)
 
     def save(self):
-        domen, title = get_group_domen_and_title(self.domen_name)
-        self.domen = domen
-        self.title = title
+        vk_group = get_group(self.domen_name)
+        self.domen, self.title = vk_group["id"], vk_group["name"]
+        self.pic_url = vk_group["photo_50"]
         super().save()
 
 
