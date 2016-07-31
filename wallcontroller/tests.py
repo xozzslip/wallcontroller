@@ -27,5 +27,9 @@ class CommunityCreateTestCase(TestCase):
         community = Community(domen_name=invalid_domen, user_owner=TEST_USER)
         with self.assertRaises(CommunityDoesNotExist):
             community.save()
-        community.domen_name = TEST_PUBLIC.domen_name
+
+    def test_created_community(self):
+        domen = TEST_PUBLIC.domen_name
+        community = Community(domen_name=domen, user_owner=TEST_USER)
         community.save()
+        self.assertTrue("http" in community.pic_url)

@@ -16,7 +16,8 @@ class Community(models.Model):
     def save(self):
         vk_group = get_group(self.domen_name)
         self.domen, self.title = vk_group["id"], vk_group["name"]
-        self.pic_url = vk_group["photo_50"]
+        if "photo_200" in vk_group:
+            self.pic_url = vk_group["photo_200"]
         super().save()
 
 

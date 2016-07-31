@@ -1,0 +1,13 @@
+<ul class="nav nav-sidebar">
+  <li ng-repeat="community in $ctrl.communities">
+        <div class="row community-list-link">
+          <div class="col-md-2">
+            <img class="img-left circle_img" ng-src="{{community.pic_url}}" alt="{{community.title}}">
+          </div>
+          <div class="col-md-10 text-with-img">
+          <h4 class="no-padding-no-margin" >{{community.title}}</h4>
+          {{community.url}}
+          </div>
+        </div>
+  </li>
+</ul>
