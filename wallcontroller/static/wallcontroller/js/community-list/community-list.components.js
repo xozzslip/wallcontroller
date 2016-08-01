@@ -8,3 +8,4 @@ angular.module('wallcontrollerApp').component('communityList', {
     	});
     }
 });
+

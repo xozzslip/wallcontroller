@@ -37,8 +37,9 @@
 	padding-left: 20px;
 }
 .no-padding-no-margin{
-	padding: 0px;
+	padding: 0px!important;
 	margin: 0px;
+	color: #000000;
 }
 .community-list-link:hover{
 	background-color: #D6D1AE;
@@ -56,4 +57,12 @@
 	color: #54004A;
 	font-weight: 700;
 	font-size: 20px;
+}
+.community-list-link:active{
+	background-color: #D6D1AE;
+	cursor: pointer;
+}
+a:active{
+	background-color: #D6D1AE;
+	cursor: pointer;	
 }

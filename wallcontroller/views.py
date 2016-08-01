@@ -20,3 +20,12 @@ class CommunitiesList(APIView):
         own_communities = Community.objects.filter(user_owner=request.user)
         serializer = CommunitySerializer(own_communities, many=True)
         return Response(serializer.data)
+
+
+class CommunitySingle(APIView):
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+
+    def get(self, request, pk):
+        community = Community.objects.get(pk=pk)
+        serializer = CommunitySerializer(community)
+        return Response(serializer.data)
