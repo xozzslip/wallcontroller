@@ -38,14 +38,17 @@ class CommunityCreateTestCase(TestCase):
 
     def test_get_posts(self):
         COUNT = 10
-        posts = self.community.posts(COUNT)
+        posts = self.community.get_posts(COUNT)
         self.assertEquals(len(posts), COUNT)
         self.assertTrue(TEST_POST in str(posts))
 
     def test_get_comments(self):
-        posts = self.community.posts(10)
-        comments = self.community.comments(posts)
+        posts = self.community.get_posts(10)
+        comments = self.community.get_comments_from_posts(posts)
         self.assertTrue(TEST_COMMENT in str(comments))
+
+    def test_synchronize(self):
+        pass
 
     @classmethod
     def tearDownClass(cls):

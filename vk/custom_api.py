@@ -12,10 +12,9 @@ class PublicApiCommands:
         items = self.connection.complex_request(method, params, count)
         return items
 
-    def get_comments_form_post(self, post):
+    def get_comments_form_post(self, post_id):
         method = "wall.getComments"
         params = "owner_id=-%s&need_likes=1" % self.domen
-        post_id = post["id"]
         parameters_with_post_id = params + "&post_id=%s" % post_id
         items = self.connection.complex_request(method, parameters_with_post_id)
         return items
@@ -23,6 +22,17 @@ class PublicApiCommands:
     def get_comments_from_post_list(self, post_list):
         result_list_of_items = []
         for post in post_list:
-            items = self.get_comments_form_post(post)
+            items = self.get_comments_form_post(post["id"])
             result_list_of_items.extend(items)
         return result_list_of_items
+
+    def create_post(self, text):
+        method = "wall.post"
+        params = "owner_id=-%s&from_group=1&message=%s" % (self.domen, text)
+        post_id = self.connection.complex_request(method, params)[0]
+        return post_id
+
+    def delete_post(self, post_id):
+        method = "wall.delete"
+        params = "owner_id=-%s&post_id=%s" % (self.domen, post_id)
+        self.connection.complex_request(method, params)

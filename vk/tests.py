@@ -12,7 +12,7 @@ class Public:
         self.domen_name = domen_name
         self.domen = domen
 
-# Records that should be contained in one of posts and comments in test public
+# Records that should be contained in test public
 TEST_COMMENT = "TEST_COMMENT"
 TEST_POST = "TEST_POST"
 
@@ -85,7 +85,7 @@ class TestPublicApiCommands(unittest.TestCase):
     def test_get_comments_form_post(self):
         posts = self.public.get_post_list(count=1)
         post = posts[0]
-        comments = self.public.get_comments_form_post(post)
+        comments = self.public.get_comments_form_post(post["id"])
         self.assertIsInstance(comments, list)
 
     def test_get_comments_from_post_list(self):

@@ -14,6 +14,8 @@ class Community(models.Model):
     pic_url = models.CharField(max_length=300, null=True, blank=True)
     user_owner = models.ForeignKey(User)
 
+    supporting_post_count = models.IntegerField(default=50)
+
     @property
     def api(self):
         if self.app:
@@ -22,11 +24,19 @@ class Community(models.Model):
             access_token = ""
         return PublicApiCommands(access_token=access_token, domen=self.domen)
 
-    def posts(self, count):
+    def get_posts(self, count=None):
+        if count is None:
+            count = self.supporting_post_count
         return self.api.get_post_list(count)
 
-    def comments(self, post_list):
-        return self.api.get_comments_from_post_list(post_list)
+    def get_comments_from_posts(self, posts):
+        return self.api.get_comments_from_post_list(posts)
+
+    def synchronize(self):
+        recent_posts = self.get_posts()
+        for post in recent_posts:
+            post_object = Post(post_id=post["id"], date=post["date"], community=self)
+            post_object.save()
 
     def save(self):
         vk_group = get_group(self.domen_name)
@@ -41,12 +51,17 @@ class VkApp(models.Model):
 
 
 class Post(models.Model):
-    parent_community = models.ForeignKey("Community")
+    community = models.ForeignKey("Community")
     post_id = models.CharField(max_length=300)
+    date = models.IntegerField()
+
+    def get_comments(self):
+        api = self.parent_community.api
+        return api.get_comments_form_post(self.post_id)
 
 
 class Comment(models.Model):
-    parent_post = models.ForeignKey("Post")
-    parent_community = models.ForeignKey("Community", null=True, blank=True)
+    post = models.ForeignKey("Post")
+    community = models.ForeignKey("Community", null=True, blank=True)
     comment_id = models.CharField(max_length=200)
     start_tracking = models.DateTimeField(auto_now_add=True)
