@@ -12,6 +12,9 @@ class Public:
         self.domen_name = domen_name
         self.domen = domen
 
+# Records that should be contained in one of posts and comments in test public
+TEST_COMMENT = "TEST_COMMENT"
+TEST_POST = "TEST_POST"
 
 TEST_PUBLIC = Public(
     url="https://new.vk.com/khasanlab",
@@ -28,7 +31,7 @@ BIG_PUBLIC = Public(
 
 class TestComplexRequests(unittest.TestCase):
     def setUp(self):
-        self.connection = VkApi(access_token="", v="5.52")
+        self.connection = VkApi(access_token="")
 
     def test_get_posts(self):
         params = "owner_id=-%s" % TEST_PUBLIC.domen
@@ -61,8 +64,7 @@ class TestComplexRequests(unittest.TestCase):
 
 class TestPublicApiCommands(unittest.TestCase):
     def setUp(self):
-        self.public = PublicApiCommands(access_token="", v="5.52",
-                                        domen=TEST_PUBLIC.domen)
+        self.public = PublicApiCommands(access_token="", domen=TEST_PUBLIC.domen)
 
     def test_get_group_domen_in_apicontext(self):
         self.assertEqual(self.public.domen, TEST_PUBLIC.domen)
@@ -75,8 +77,7 @@ class TestPublicApiCommands(unittest.TestCase):
         self.assertEqual(len(items), 10)
 
     def test_get_post_list_big_pub(self):
-        BIG_PUBLIC_api = PublicApiCommands(access_token="", v="5.52",
-                                           domen=BIG_PUBLIC.domen)
+        BIG_PUBLIC_api = PublicApiCommands(access_token="", domen=BIG_PUBLIC.domen)
 
         items = BIG_PUBLIC_api.get_post_list(300)
         self.assertEqual(len(items), 300)

@@ -1,9 +1,9 @@
 angular.module('wallcontrollerApp').component('communitySingle', {
     templateUrl: '/static/wallcontroller/js/community-single/community-single.template.html',
-    controller: function($http, $routeParams){
+    controller: function($http){
         var self = this 
 
-        $http.get('/api/communities/' + $routeParams.phoneId).then(function(response){
+        $http.get('/api/communities/').then(function(response){
             self.community = response.data;
         });
     }

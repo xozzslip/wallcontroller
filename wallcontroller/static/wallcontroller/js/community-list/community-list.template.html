@@ -1,9 +1,12 @@
-<ul class="nav nav-sidebar">
-  <li ng-repeat="community in $ctrl.communities">
-        <a href="/api/communities/{{community.pk}}" class="no-padding-no-margin community-list-link">
+<div class="col-md-4">
+  <div class="sidebar container-community-list">
+    <ul class="nav nav-sidebar">
+      <li ng-show="isCommunitiesLoading"><div class="row community-list-link"><div class="col-md-2-offset col-md-10 text-with-img"><h4 class="no-padding-no-margin">Loading...</h4></div></div></li>
+      <li ng-repeat="community in $ctrl.communities">
+        <a ng-click="open(community)" class="no-padding-no-margin community-list-link">
           <div class="row community-list-link">
             <div class="col-md-2">
-              <img class="img-left circle_img" ng-src="{{community.pic_url}}" alt="{{community.title}}">
+                <img class="img-left circle_img" ng-src="{{community.pic_url}}" alt="{{community.title}}">
             </div>
             <div class="col-md-10 text-with-img">
               <h4  class="no-padding-no-margin">{{community.title}}</h4>
@@ -11,5 +14,13 @@
             </div>
           </div>
         </a>
-  </li>
-</ul>
+      </li>
+
+    </ul>
+  </div>
+</div>
+<div class="col-md-8">
+  Название сообщества: {{opened_community.title}} </br>
+  Link: {{opened_community.url}}
+  
+</div>

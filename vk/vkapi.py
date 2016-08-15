@@ -13,7 +13,7 @@ MAX_PER_REQ = {
 
 
 class VkApi:
-    def __init__(self, access_token, v):
+    def __init__(self, access_token, v="5.52"):
         self.access_token = access_token
         self.v = v
 

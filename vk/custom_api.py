@@ -2,8 +2,8 @@ from .vkapi import VkApi
 
 
 class PublicApiCommands:
-    def __init__(self, access_token, v, domen):
-        self.connection = VkApi(access_token, v)
+    def __init__(self, access_token, domen):
+        self.connection = VkApi(access_token)
         self.domen = domen
 
     def get_post_list(self, count):
