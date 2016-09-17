@@ -4,6 +4,7 @@ from .vkapi import VkApi
 from .custom_api import PublicApiCommands
 from .exceptions import VkApiError
 from .commands import get_group, get_group_domen, get_group_domen_and_title
+from vk.private_data import test_settings
 
 
 class Public:
@@ -12,14 +13,11 @@ class Public:
         self.domen_name = domen_name
         self.domen = domen
 
-# Records that should be contained in test public
-TEST_COMMENT = "TEST_COMMENT"
-TEST_POST = "TEST_POST"
 
 TEST_PUBLIC = Public(
-    url="https://new.vk.com/khasanlab",
-    domen_name="khasanlab",
-    domen=87470452
+    url=test_settings.URL,
+    domen_name=test_settings.DOMEN_NAME,
+    domen=test_settings.DOMEN
 )
 
 BIG_PUBLIC = Public(
@@ -35,9 +33,9 @@ class TestComplexRequests(unittest.TestCase):
 
     def test_get_posts(self):
         params = "owner_id=-%s" % TEST_PUBLIC.domen
-        items = self.connection.complex_request("wall.get", params, 1)
+        items = self.connection.make_request("wall.get", params, 1)
         self.assertEqual(len(items), 1)
-        items = self.connection.complex_request("wall.get", params, 10)
+        items = self.connection.make_request("wall.get", params, 10)
         self.assertEqual(len(items), 10)
 
     def test_groupsgetById_explicit(self):
@@ -45,20 +43,20 @@ class TestComplexRequests(unittest.TestCase):
         count of items id specified explicity
         """
         params = "group_id=%s" % TEST_PUBLIC.domen_name
-        items = self.connection.complex_request("groups.getById", params, 1)
+        items = self.connection.make_request("groups.getById", params, 1)
         group = items[0]
         self.assertEqual(group["id"], TEST_PUBLIC.domen)
 
     def test_groupsgetById_implicit(self):
         params = "group_id=%s" % TEST_PUBLIC.domen_name
-        items = self.connection.complex_request("groups.getById", params)
+        items = self.connection.make_request("groups.getById", params)
         group = items[0]
         self.assertEqual(group["id"], TEST_PUBLIC.domen)
 
     def test_request_with_error(self):
         params = "group_id=%s" % "group_that_doesnot_exists123321"
         with self.assertRaises(VkApiError) as er:
-            self.connection.complex_request("groups.getById", params)
+            self.connection.make_request("groups.getById", params)
         self.assertEqual(er.exception.code, 100)
 
 
@@ -77,7 +75,14 @@ class TestPublicApiCommands(unittest.TestCase):
         self.assertEqual(len(items), 10)
 
     def test_get_post_list_big_pub(self):
-        BIG_PUBLIC_api = PublicApiCommands(access_token="", domen=BIG_PUBLIC.domen)
+        # Tests the oppotunity of getting count of posts that more than max per request
+        # So there we need a big public that contains enough posts
+        BIG_PUBLIC = {
+            "url": "https://vk.com/40kg",
+            "domen_name": "40kg",
+            "domen": 28627911
+        }
+        BIG_PUBLIC_api = PublicApiCommands(access_token="", domen=BIG_PUBLIC["domen"])
 
         items = BIG_PUBLIC_api.get_post_list(300)
         self.assertEqual(len(items), 300)
@@ -94,6 +99,37 @@ class TestPublicApiCommands(unittest.TestCase):
         self.assertTrue(len(comments) > 0)
         self.assertTrue("likes" in comments[0])
 
+
+class TestPublicApiCommandsAccessTokenRequired(unittest.TestCase):
+    def setUp(self):
+        self.public = PublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=TEST_PUBLIC.domen
+        )
+
+    def test_get_post_id_by_text(self):
+        test_post = self.public.get_post_by_text(text=test_settings.TEST_POST)
+        self.assertTrue("id" in test_post)
+        self.assertTrue(test_settings.TEST_POST in test_post["text"])
+
+    def test_comment_creating_and_deleting(self):
+        test_post = self.public.get_post_by_text(text=test_settings.TEST_POST)
+        post_id = test_post["id"]
+        created_comment_id = self.public.create_comment(
+            text=test_settings.TEST_COMMENT,
+            post_id=post_id
+        )
+        comments = self.public.get_comments_form_post(post_id)
+        # let's find just created comment in list of comments
+        find_created_comment = [c for c in comments if c["id"] == created_comment_id][0]
+        self.assertEqual(find_created_comment["id"], created_comment_id)
+
+        self.public.delete_comment(created_comment_id)
+        comments = self.public.get_comments_form_post(post_id)
+
+        # let's check that now we are not able to find deleted comment
+        find_deleted_comment = [c for c in comments if c["id"] == created_comment_id]
+        self.assertTrue(len(find_deleted_comment) == 0)
 
 class TestCommands(unittest.TestCase):
     def test_get_group_domen(self):

@@ -53,7 +53,7 @@ class VkApp(models.Model):
 class Post(models.Model):
     community = models.ForeignKey("Community")
     post_id = models.CharField(max_length=300)
-    date = models.IntegerField()
+    raw_date = models.IntegerField()
 
     def get_comments(self):
         api = self.parent_community.api

@@ -11,6 +11,8 @@ MAX_PER_REQ = {
     "wall.getComments": 100,
 }
 
+SLEEP = 0.334
+
 
 class VkApi:
     def __init__(self, access_token, v="5.52"):
@@ -25,6 +27,9 @@ class VkApi:
     @classmethod
     def extract_response(cls, response):
         if "response" in response:
+            # sometimes response["response"] can be int. Lets unify it: make it iterable
+            if not isinstance(response["response"], (list, dict)):
+                response["response"] = [response["response"]]
             if "items" in response["response"]:
                 count, items = cls._extract_response_itemstype(response)
             else:
@@ -52,23 +57,33 @@ class VkApi:
         message = response["error"]["error_msg"]
         return (code, message)
 
-    def complex_request(self, method, parameters,
-                        desired_count_of_items=None, max_items_per_request=None):
+    def get_type_request(self, method, parameters, count=None):
         result_list_of_items = []
-        if not desired_count_of_items:
-            desired_count_of_items = self.get_count(method, parameters)
-        if not max_items_per_request:
-            max_items_per_request = MAX_PER_REQ[method]
-        parameters += "&count=%s" % desired_count_of_items
-        for i in range(math.ceil(desired_count_of_items / max_items_per_request)):
+        if not count:
+            count = self.get_count(method, parameters)
+        max_items_per_request = MAX_PER_REQ[method]
+        parameters += "&count=%s" % count
+        for i in range(math.ceil(count / max_items_per_request)):
             offset = str(i * max_items_per_request)
             parameters_with_offset = parameters + "&offset=%s" % offset
             response = self.request(method, parameters_with_offset)
             count, items = self.extract_response(response)
             result_list_of_items.extend(items)
-
-            time.sleep(0.334)
+            time.sleep(SLEEP)
         return result_list_of_items
+
+    def post_type_request(self, method, parameters):
+        response = self.request(method, parameters)
+        count, items = self.extract_response(response)
+        time.sleep(SLEEP)
+        return items
+
+    def make_request(self, method, parameters, count=None):
+        if method in MAX_PER_REQ:
+            response = self.get_type_request(method, parameters, count)
+        else:
+            response = self.post_type_request(method, parameters)
+        return response
 
     def get_count(self, method, parameters):
         response = self.request(method, parameters)

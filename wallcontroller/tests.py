@@ -5,7 +5,7 @@ from .serializers import CommunitySerializer
 from .models import Community
 
 from vk.exceptions import CommunityDoesNotExist
-from vk.tests import TEST_PUBLIC, TEST_COMMENT, TEST_POST
+from vk.private_data import test_settings
 
 
 def setUpModule():
@@ -24,7 +24,7 @@ class SerializersTestCase(TestCase):
 class CommunityCreateTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.community = Community(domen_name=TEST_PUBLIC.domen, user_owner=TEST_USER)
+        cls.community = Community(domen_name=test_settings.DOMEN, user_owner=TEST_USER)
         cls.community.save()
 
     def test_community_creation(self):
@@ -40,12 +40,12 @@ class CommunityCreateTestCase(TestCase):
         COUNT = 10
         posts = self.community.get_posts(COUNT)
         self.assertEquals(len(posts), COUNT)
-        self.assertTrue(TEST_POST in str(posts))
+        self.assertTrue(test_settings.TEST_POST in str(posts))
 
     def test_get_comments(self):
         posts = self.community.get_posts(10)
         comments = self.community.get_comments_from_posts(posts)
-        self.assertTrue(TEST_COMMENT in str(comments))
+        self.assertTrue(test_settings.TEST_COMMENT in str(comments))
 
     def test_synchronize(self):
         pass
