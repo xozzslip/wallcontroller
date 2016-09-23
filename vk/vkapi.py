@@ -70,6 +70,7 @@ class VkApi:
             count, items = self.extract_response(response)
             result_list_of_items.extend(items)
             time.sleep(SLEEP)
+        time.sleep(SLEEP)
         return result_list_of_items
 
     def post_type_request(self, method, parameters):
