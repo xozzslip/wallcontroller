@@ -1,6 +1,9 @@
+import math
+import time
 from functools import reduce
-from .vkapi import VkApi
+from .vkapi import VkApi, SLEEP
 
+REQ_LIMIT_IN_EXECUTE = 25
 
 class PublicApiCommands:
     def __init__(self, access_token, domen):
@@ -61,18 +64,25 @@ class ExecutablePublicApiCommands:
         self.connection = VkApi(access_token)
         self.domen = domen
 
-    def get_comments_from_post_list(self, post_list):
+    @staticmethod
+    def split_posts(post_list):
+        lim = REQ_LIMIT_IN_EXECUTE
+        range_ = math.ceil(len(post_list) / REQ_LIMIT_IN_EXECUTE)
+        return [post_list[i * lim: (i + 1) * lim] for i in range(range_)]
+
+    def get_chunck_of_comments_form_post_list(self, limited_post_list):
         method = "execute"
-        post_ids_list = [post["id"] for post in post_list]
+        post_ids_list = [post["id"] for post in limited_post_list]
         сode = """
             var post_list = %s;
             var comments_list = [];
             while (post_list.length > 0){
-                var current_post =post_list.pop();
+                var current_post = post_list.pop();
                 var comments = API.wall.getComments({
                     "owner_id": -%s,
                     "need_likes": 1,
                     "post_id": current_post,
+                    "count": 100,
                 });
                 comments_list.push(comments);
             }
@@ -80,7 +90,15 @@ class ExecutablePublicApiCommands:
         """ % (post_ids_list, self.domen)
         params = "code=%s" % сode
         responses_list = self.connection.make_request(method, params)
+        time.sleep(SLEEP)
         return self.responses_list_to_comments(responses_list)
+
+    def get_comments_from_post_list(self, post_list):
+        items = []
+        for limited_post_list in self.split_posts(post_list):
+            items += self.get_chunck_of_comments_form_post_list(limited_post_list)
+        time.sleep(SLEEP)
+        return items
 
     def responses_list_to_comments(self, responses_list):
         list_of_items = [post_comments["items"] for post_comments in responses_list]

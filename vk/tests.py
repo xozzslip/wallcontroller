@@ -1,7 +1,8 @@
 import unittest
 
 from .vkapi import VkApi
-from .custom_api import PublicApiCommands, ExecutablePublicApiCommands
+from .custom_api import (PublicApiCommands, ExecutablePublicApiCommands,
+    REQ_LIMIT_IN_EXECUTE)
 from .exceptions import VkApiError
 from .commands import get_group, get_group_domen, get_group_domen_and_title
 from vk.private_data import test_settings
@@ -21,9 +22,9 @@ TEST_PUBLIC = Public(
 )
 
 BIG_PUBLIC = Public(
-    url="https://new.vk.com/40kg",
-    domen_name="40kg",
-    domen=28627911
+    url="https://vk.com/rfpl",
+    domen_name="rfpl",
+    domen=51812607
 )
 
 
@@ -168,6 +169,29 @@ class TestExecutableApiCommands(unittest.TestCase):
         self.assertTrue(all([e for e in comments_exe if e in comments_com]))
         self.assertTrue(all([c for c in comments_com if c in comments_exe]))
 
+    def test_split_posts(self):
+        EXCESS = 5
+        too_long_list = [i for i in range(REQ_LIMIT_IN_EXECUTE + EXCESS)]
+        splited_list = self.exe_commands.split_posts(too_long_list)
+        self.assertEqual(len(splited_list), 2)
+        self.assertEqual(len(splited_list[0]), REQ_LIMIT_IN_EXECUTE)
+        self.assertEqual(len(splited_list[1]), EXCESS)
+
+    def test_get_comments_form_big_public(self):
+        common_commands_BIG = PublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=BIG_PUBLIC.domen
+        )
+        exe_commands_BIG = ExecutablePublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=BIG_PUBLIC.domen
+        )
+        posts = common_commands_BIG.get_post_list(count=40)
+        comments_exe = exe_commands_BIG.get_comments_from_post_list(posts)
+        comments_com = common_commands_BIG.get_comments_from_post_list(posts)
+        self.assertTrue(all([e for e in comments_exe if e in comments_com]))
+        self.assertTrue(all([c for c in comments_com if c in comments_exe]))
+        self.assertEqual(len(comments_com), len(comments_exe))
 
 if __name__ == '__main__':
     unittest.main()
