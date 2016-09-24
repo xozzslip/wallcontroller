@@ -68,7 +68,7 @@ class CommunityCreateTestCase(TestCase):
         cls.community.delete()
 
 
-class TestSynchronize(TestCase):
+class TestGettingComments(TestCase):
     def test_detecting_created_comment(self):
         """Checking that created comment will appear in db after
         synchronization
@@ -88,3 +88,9 @@ class TestSynchronize(TestCase):
         self.assertTrue(created_comment_id in comments_ids)
 
         TEST_COMMUNITY.api.delete_comment(created_comment_id)
+
+    def test_get_comments_in_dict(self):
+        synchronize.apply().get()
+        comments_in_dict = Comment.objects.dict()
+        self.assertTrue(isinstance(comments_in_dict, dict))
+        self.assertTrue(len(comments_in_dict) > 0)

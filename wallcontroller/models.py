@@ -42,7 +42,9 @@ class Community(models.Model):
             comments = self.get_comments_form_post(post.post_id)
             for comment in comments:
                 comment = Comment(post=post, community=self,
-                                  comment_id=comment["id"])
+                                  comment_id=comment["id"],
+                                  likes_count=comment["likes"]["count"]
+                                  )
                 comment.save()
 
     def save(self):
@@ -67,8 +69,25 @@ class Post(models.Model):
         return api.get_comments_form_post(self.post_id)
 
 
+class CommentManager(models.Manager):
+    def dict(self):
+        qs = super().get_queryset().all()
+        result_dict = {comment.comment_id: [] for comment in qs}
+        for comment in qs:
+            comment_info = {
+                "time": comment.start_tracking,
+                "likes_count": comment.likes_count,
+                "pk": comment.pk
+            }
+            result_dict[comment.comment_id].append(comment_info)
+        return result_dict
+
+
 class Comment(models.Model):
     post = models.ForeignKey("Post")
     community = models.ForeignKey("Community", null=True, blank=True)
     comment_id = models.IntegerField()
-    start_tracking = models.DateTimeField(auto_now_add=True) 
+    start_tracking = models.DateTimeField(auto_now_add=True)
+    likes_count = models.IntegerField(default=0)
+
+    objects = CommentManager()

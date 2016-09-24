@@ -1,7 +1,7 @@
 import unittest
 
 from .vkapi import VkApi
-from .custom_api import PublicApiCommands
+from .custom_api import PublicApiCommands, ExecutablePublicApiCommands
 from .exceptions import VkApiError
 from .commands import get_group, get_group_domen, get_group_domen_and_title
 from vk.private_data import test_settings
@@ -147,6 +147,26 @@ class TestCommands(unittest.TestCase):
         with self.assertRaises(VkApiError) as er:
             get_group(domen_name)
         self.assertEqual(er.exception.code, 100)
+
+
+class TestExecutableApiCommands(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.exe_commands = ExecutablePublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=TEST_PUBLIC.domen
+        )
+        cls.common_commands = PublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=TEST_PUBLIC.domen
+        )
+
+    def test_get_comments_from_post_list(self):
+        posts = self.common_commands.get_post_list(count=5)
+        comments_exe = self.exe_commands.get_comments_from_post_list(posts)
+        comments_com = self.common_commands.get_comments_from_post_list(posts)
+        self.assertTrue(all([e for e in comments_exe if e in comments_com]))
+        self.assertTrue(all([c for c in comments_com if c in comments_exe]))
 
 
 if __name__ == '__main__':

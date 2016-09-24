@@ -1,3 +1,4 @@
+from functools import reduce
 from .vkapi import VkApi
 
 
@@ -53,3 +54,34 @@ class PublicApiCommands:
         post_list = self.get_post_list(count=CHECKING_COUNT)
         desired_post = [post for post in post_list if text in post["text"]][0]
         return desired_post
+
+
+class ExecutablePublicApiCommands:
+    def __init__(self, access_token, domen):
+        self.connection = VkApi(access_token)
+        self.domen = domen
+
+    def get_comments_from_post_list(self, post_list):
+        method = "execute"
+        post_ids_list = [post["id"] for post in post_list]
+        сode = """
+            var post_list = %s;
+            var comments_list = [];
+            while (post_list.length > 0){
+                var current_post =post_list.pop();
+                var comments = API.wall.getComments({
+                    "owner_id": -%s,
+                    "need_likes": 1,
+                    "post_id": current_post,
+                });
+                comments_list.push(comments);
+            }
+            return comments_list;
+        """ % (post_ids_list, self.domen)
+        params = "code=%s" % сode
+        responses_list = self.connection.make_request(method, params)
+        return self.responses_list_to_comments(responses_list)
+
+    def responses_list_to_comments(self, responses_list):
+        list_of_items = [post_comments["items"] for post_comments in responses_list]
+        return reduce(lambda res, x: res + x, list_of_items, [])
