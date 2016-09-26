@@ -22,7 +22,7 @@ class VkApi:
     def request(self, method, parameters):
         url = "https://api.vk.com/method/%s?%s&access_token=%s&v=%s"
         url_with_parameters = url % (method, parameters, self.access_token, self.v)
-        response = requests.get(url_with_parameters)
+        response = requests.get(url_with_parameters, timeout=1.5)
         time.sleep(SLEEP)
         return json.loads(response.text)
 

@@ -36,14 +36,11 @@ class Community(models.Model):
 
     def synchronize(self):
         recent_posts = self.get_posts(self.post_count_for_synchronize)
-        for post in recent_posts:
-            post = Post(post_id=post["id"], raw_date=post["date"], community=self)
-            post.save()
         comments = self.get_comments_from_post_list(recent_posts)
         for comment in comments:
-            comment = Comment(community=self, post_id=comment["post_id"],
-                              comment_id=comment["id"],
-                              likes_count=comment["likes"]["count"])
+            comment = Comment(community=self, comment_id=comment["id"],
+                              likes_count=comment["likes"]["count"],
+                              post_id=comment["post_id"])
             comment.save()
 
     def save(self):
@@ -58,16 +55,6 @@ class Community(models.Model):
 
 class VkApp(models.Model):
     access_token = models.CharField(max_length=300)
-
-
-class Post(models.Model):
-    community = models.ForeignKey("Community")
-    post_id = models.IntegerField()
-    raw_date = models.IntegerField()
-
-    def get_comments(self):
-        api = self.parent_community.api
-        return api.get_comments_form_post(self.post_id)
 
 
 class CommentManager(models.Manager):
