@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 
 from vk.commands import get_group
@@ -34,6 +34,7 @@ class Community(models.Model):
     def get_comments_form_post(self, post_id):
         return self.api.get_comments_form_post(post_id)
 
+    @transaction.atomic
     def synchronize(self):
         recent_posts = self.get_posts(self.post_count_for_synchronize)
         comments = self.get_comments_from_post_list(recent_posts)
