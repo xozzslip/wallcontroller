@@ -1,10 +1,19 @@
+from threading import Lock
 from default.celery import app
 from wallcontroller.models import Community
 
+# lock_access_token = Lock()
+
 
 @app.task()
-def synchronize(name='wallcontroller.tasks.synchronize'):
+def synchronize_community(pk):
+    # lock_access_token.acquire()
+    Community.objects.get(pk=pk).synchronize()
+    # lock_access_token.realise()
+
+
+@app.task()
+def synchronize():
     communities = Community.objects.filter(disabled=False)
     for community in communities:
         community.synchronize()
-    return 'OK'

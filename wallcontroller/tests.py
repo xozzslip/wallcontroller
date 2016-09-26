@@ -1,3 +1,4 @@
+import unittest
 from django.test import TestCase
 from django.contrib.auth.models import User
 
@@ -40,7 +41,7 @@ class SerializersTestCase(TestCase):
 class CommunityCreateTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.community = Community(domen_name=test_settings.DOMEN, user_owner=TEST_USER)
+        cls.community = Community(domen_name=test_settings.DOMEN, user_owner=TEST_USER, app=TEST_APP)
         cls.community.save()
 
     def test_community_creation(self):
@@ -73,24 +74,29 @@ class TestGettingComments(TestCase):
         """Checking that created comment will appear in db after
         synchronization
         """
-        synchronize.apply().get()
-        comments = Comment.objects.filter(post__post_id=TEST_POST.post_id)
-        created_comment_id = TEST_COMMUNITY.api.create_comment(
-            text=test_settings.TEST_COMMENT,
-            post_id=TEST_POST.post_id
-        )
-        comments_ids = [c.comment_id for c in comments]
-        self.assertFalse(created_comment_id in comments_ids)
+        with unittest.mock.patch('default.celeryconfig.CELERY_ALWAYS_EAGER', True, create=True):
+            synchronize.apply().get()
+            comments = Comment.objects.filter(post__post_id=TEST_POST.post_id)
+            created_comment_id = TEST_COMMUNITY.api.create_comment(
+                text=test_settings.TEST_COMMENT,
+                post_id=TEST_POST.post_id
+            )
+            print(comments)
+            comments_ids = [c.comment_id for c in comments]
+            self.assertFalse(created_comment_id in comments_ids)
 
-        synchronize.apply().get()
-        comments = Comment.objects.filter(post__post_id=TEST_POST.post_id)
-        comments_ids = [c.comment_id for c in comments]
-        self.assertTrue(created_comment_id in comments_ids)
+            synchronize.apply().get()
+            comments = Comment.objects.filter(post__post_id=TEST_POST.post_id)
+            for c in comments:
+                print(c.comment_id)
+            comments_ids = [c.comment_id for c in comments]
+            self.assertTrue(created_comment_id in comments_ids)
 
-        TEST_COMMUNITY.api.delete_comment(created_comment_id)
+            TEST_COMMUNITY.api.delete_comment(created_comment_id)
 
     def test_get_comments_in_dict(self):
-        synchronize.apply().get()
-        comments_in_dict = Comment.objects.dict()
-        self.assertTrue(isinstance(comments_in_dict, dict))
-        self.assertTrue(len(comments_in_dict) > 0)
+        with unittest.mock.patch('default.celeryconfig.CELERY_ALWAYS_EAGER', True, create=True):
+            synchronize.delay()
+            comments_in_dict = Comment.objects.dict()
+            self.assertTrue(isinstance(comments_in_dict, dict))
+            self.assertTrue(len(comments_in_dict) > 0)

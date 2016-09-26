@@ -28,7 +28,7 @@ class Community(models.Model):
     def get_posts(self, count):
         return self.api.get_post_list(count)
 
-    def get_comments_from_posts(self, posts):
+    def get_comments_from_post_list(self, posts):
         return self.api.get_comments_from_post_list(posts)
 
     def get_comments_form_post(self, post_id):
@@ -39,19 +39,20 @@ class Community(models.Model):
         for post in recent_posts:
             post = Post(post_id=post["id"], raw_date=post["date"], community=self)
             post.save()
-            comments = self.get_comments_form_post(post.post_id)
-            for comment in comments:
-                comment = Comment(post=post, community=self,
-                                  comment_id=comment["id"],
-                                  likes_count=comment["likes"]["count"]
-                                  )
-                comment.save()
+        comments = self.get_comments_from_post_list(recent_posts)
+        for comment in comments:
+            comment = Comment(community=self, post_id=comment["post_id"],
+                              comment_id=comment["id"],
+                              likes_count=comment["likes"]["count"])
+            comment.save()
 
     def save(self):
         vk_group = get_group(self.domen_name)
         self.domen, self.title = vk_group["id"], vk_group["name"]
         if "photo_200" in vk_group:
             self.pic_url = vk_group["photo_200"]
+        if not self.app:
+            self.app = VkApp.objects.all().order_by('?')[0]
         super().save()
 
 
@@ -84,7 +85,7 @@ class CommentManager(models.Manager):
 
 
 class Comment(models.Model):
-    post = models.ForeignKey("Post")
+    post_id = models.IntegerField()
     community = models.ForeignKey("Community", null=True, blank=True)
     comment_id = models.IntegerField()
     start_tracking = models.DateTimeField(auto_now_add=True)

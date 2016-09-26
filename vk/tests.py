@@ -95,8 +95,11 @@ class TestPublicApiCommands(unittest.TestCase):
         self.assertIsInstance(comments, list)
 
     def test_get_comments_from_post_list(self):
-        posts = self.public.get_post_list(count=15)
-        comments = self.public.get_comments_from_post_list(posts)
+        public_with_access = PublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=test_settings.DOMEN)
+        posts = public_with_access.get_post_list(count=15)
+        comments = public_with_access.get_comments_from_post_list(posts)
         self.assertTrue(len(comments) > 0)
         self.assertTrue("likes" in comments[0])
 
@@ -131,6 +134,7 @@ class TestPublicApiCommandsAccessTokenRequired(unittest.TestCase):
         # let's check that now we are not able to find deleted comment
         find_deleted_comment = [c for c in comments if c["id"] == created_comment_id]
         self.assertTrue(len(find_deleted_comment) == 0)
+
 
 class TestCommands(unittest.TestCase):
     def test_get_group_domen(self):

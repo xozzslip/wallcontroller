@@ -5,10 +5,12 @@ from .vkapi import VkApi, SLEEP
 
 REQ_LIMIT_IN_EXECUTE = 25
 
+
 class PublicApiCommands:
     def __init__(self, access_token, domen):
         self.connection = VkApi(access_token)
         self.domen = domen
+        self.executable_commands = ExecutablePublicApiCommands(access_token, domen)
 
     def get_post_list(self, count):
         method = "wall.get"
@@ -24,6 +26,9 @@ class PublicApiCommands:
         return items
 
     def get_comments_from_post_list(self, post_list):
+        return self.executable_commands.get_comments_from_post_list(post_list)
+
+    def get_comments_from_post_list_not_exe(self, post_list):
         result_list_of_items = []
         for post in post_list:
             items = self.get_comments_form_post(post["id"])
@@ -84,22 +89,28 @@ class ExecutablePublicApiCommands:
                     "post_id": current_post,
                     "count": 100,
                 });
+                comments.post_id = current_post;
                 comments_list.push(comments);
             }
             return comments_list;
         """ % (post_ids_list, self.domen)
         params = "code=%s" % сode
         responses_list = self.connection.make_request(method, params)
-        time.sleep(SLEEP)
         return self.responses_list_to_comments(responses_list)
 
     def get_comments_from_post_list(self, post_list):
         items = []
         for limited_post_list in self.split_posts(post_list):
             items += self.get_chunck_of_comments_form_post_list(limited_post_list)
-        time.sleep(SLEEP)
         return items
 
     def responses_list_to_comments(self, responses_list):
+        responses_list = self.adding_post_id_to_response_list(responses_list)
         list_of_items = [post_comments["items"] for post_comments in responses_list]
         return reduce(lambda res, x: res + x, list_of_items, [])
+
+    def adding_post_id_to_response_list(self, responses_list):
+        for response in responses_list:
+            for item in response["items"]:
+                item.update({"post_id": response["post_id"]})
+        return responses_list

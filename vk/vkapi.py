@@ -21,7 +21,9 @@ class VkApi:
 
     def request(self, method, parameters):
         url = "https://api.vk.com/method/%s?%s&access_token=%s&v=%s"
-        response = requests.get(url % (method, parameters, self.access_token, self.v))
+        url_with_parameters = url % (method, parameters, self.access_token, self.v)
+        response = requests.get(url_with_parameters)
+        time.sleep(SLEEP)
         return json.loads(response.text)
 
     @classmethod
@@ -69,14 +71,11 @@ class VkApi:
             response = self.request(method, parameters_with_offset)
             count, items = self.extract_response(response)
             result_list_of_items.extend(items)
-            time.sleep(SLEEP)
-        time.sleep(SLEEP)
         return result_list_of_items
 
     def post_type_request(self, method, parameters):
         response = self.request(method, parameters)
         count, items = self.extract_response(response)
-        time.sleep(SLEEP)
         return items
 
     def make_request(self, method, parameters, count=None):
