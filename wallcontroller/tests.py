@@ -1,4 +1,5 @@
 import unittest
+import datetime
 from django.test import TestCase
 from django.contrib.auth.models import User
 
@@ -8,6 +9,7 @@ from .tasks import synchronize
 
 from vk.exceptions import CommunityDoesNotExist
 from vk.private_data import test_settings
+from wallcontroller.comments_filter import to_dict, deleting_comments_list
 
 
 def setUpModule():
@@ -76,17 +78,17 @@ class TestGettingComments(TestCase):
         with unittest.mock.patch('default.celeryconfig.CELERY_ALWAYS_EAGER',
                                  True, create=True):
             synchronize.apply().get()
-            comments = Comment.objects.filter(post_id=TEST_POST_ID)
+            comments = Comment.objects.filter(vk_post_id=TEST_POST_ID)
             created_comment_id = TEST_COMMUNITY.api.create_comment(
                 text=test_settings.TEST_COMMENT,
                 post_id=TEST_POST_ID
             )
-            comments_ids = [c.comment_id for c in comments]
+            comments_ids = [c.vk_id for c in comments]
             self.assertFalse(created_comment_id in comments_ids)
 
             synchronize.apply().get()
-            comments = Comment.objects.filter(post_id=TEST_POST_ID)
-            comments_ids = [c.comment_id for c in comments]
+            comments = Comment.objects.filter(vk_post_id=TEST_POST_ID)
+            comments_ids = [c.vk_id for c in comments]
             self.assertTrue(created_comment_id in comments_ids)
 
             TEST_COMMUNITY.api.delete_comment(created_comment_id)
@@ -95,11 +97,48 @@ class TestGettingComments(TestCase):
         with unittest.mock.patch('default.celeryconfig.CELERY_ALWAYS_EAGER',
                                  True, create=True):
             synchronize.delay()
-            comments_in_dict = Comment.objects.dict()
+            synchronize.delay()
+            comments_in_dict = to_dict(Comment.objects.all())
             self.assertTrue(isinstance(comments_in_dict, dict))
             self.assertTrue(len(comments_in_dict) > 0)
 
-    def test_speed_of_sync(self):
-        with unittest.mock.patch('default.celeryconfig.CELERY_ALWAYS_EAGER',
-                                 True, create=True):
-            synchronize.delay()
+
+class TestFilteringComments(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """
+            100 — checks that likes_c = 3, than comment will be saved;
+            4 — have to be deleted because of didn't get any likes for 5 hours;
+            9, 33 — should be saved because of too few time has passed
+            1 — has only one stamp, so shouldn't be deleted
+        """
+        cls.comments_dict_example = {
+            100: [
+                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 562609), 'likes_c': 0, 'pk': 28},
+                {'sync_ts': datetime.datetime(2016, 9, 27, 15, 1, 31, 546330), 'likes_c': 3, 'pk': 61}
+            ],
+            4: [
+                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 550045), 'likes_c': 1, 'pk': 3},
+                {'sync_ts': datetime.datetime(2016, 9, 27, 17, 43, 1, 528903), 'likes_c': 1, 'pk': 36}
+            ],
+            9: [
+                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 550045), 'likes_c': 0, 'pk': 1},
+                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 3, 1, 528903), 'likes_c': 0, 'pk': 13}
+            ],
+            33: [
+                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 15, 0), 'likes_c': 0, 'pk': 4},
+                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 0), 'likes_c': 0, 'pk': 17}
+            ],
+            1: [
+                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 0), 'likes_c': 0, 'pk': 5}
+            ],
+        }
+
+    def test_emaple(self):
+        result = deleting_comments_list(self.comments_dict_example)
+        self.assertEquals(len(result), 1)
+        self.assertTrue(4 in result)
+
+    @classmethod
+    def tearDownClass(cls):
+        pass

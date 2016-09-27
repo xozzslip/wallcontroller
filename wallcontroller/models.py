@@ -39,9 +39,9 @@ class Community(models.Model):
         recent_posts = self.get_posts(self.post_count_for_synchronize)
         comments = self.get_comments_from_post_list(recent_posts)
         for comment in comments:
-            comment = Comment(community=self, comment_id=comment["id"],
+            comment = Comment(community=self, vk_id=comment["id"],
                               likes_count=comment["likes"]["count"],
-                              post_id=comment["post_id"])
+                              vk_post_id=comment["post_id"])
             comment.save()
 
     def save(self):
@@ -58,25 +58,9 @@ class VkApp(models.Model):
     access_token = models.CharField(max_length=300)
 
 
-class CommentManager(models.Manager):
-    def dict(self):
-        qs = super().get_queryset().all()
-        result_dict = {comment.comment_id: [] for comment in qs}
-        for comment in qs:
-            comment_info = {
-                "time": comment.start_tracking,
-                "likes_count": comment.likes_count,
-                "pk": comment.pk
-            }
-            result_dict[comment.comment_id].append(comment_info)
-        return result_dict
-
-
 class Comment(models.Model):
-    post_id = models.IntegerField()
+    vk_post_id = models.IntegerField()
     community = models.ForeignKey("Community", null=True, blank=True)
-    comment_id = models.IntegerField()
-    start_tracking = models.DateTimeField(auto_now_add=True)
+    vk_id = models.IntegerField()
+    sync_ts = models.DateTimeField(auto_now_add=True)
     likes_count = models.IntegerField(default=0)
-
-    objects = CommentManager()

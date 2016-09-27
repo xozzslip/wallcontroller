@@ -8,3 +8,4 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=100),
     }
 }
+CELERY_ALWAYS_EAGER = False

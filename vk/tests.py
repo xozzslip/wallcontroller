@@ -2,7 +2,7 @@ import unittest
 
 from .vkapi import VkApi
 from .custom_api import (PublicApiCommands, ExecutablePublicApiCommands,
-    REQ_LIMIT_IN_EXECUTE)
+                         REQ_LIMIT_IN_EXECUTE)
 from .exceptions import VkApiError
 from .commands import get_group, get_group_domen, get_group_domen_and_title
 from vk.private_data import test_settings
@@ -196,6 +196,7 @@ class TestExecutableApiCommands(unittest.TestCase):
         self.assertTrue(all([e for e in comments_exe if e in comments_com]))
         self.assertTrue(all([c for c in comments_com if c in comments_exe]))
         self.assertEqual(len(comments_com), len(comments_exe))
+
 
 if __name__ == '__main__':
     unittest.main()
