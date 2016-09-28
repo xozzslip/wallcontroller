@@ -1,5 +1,4 @@
 import unittest
-import datetime
 from django.test import TestCase
 from django.contrib.auth.models import User
 
@@ -9,7 +8,7 @@ from .tasks import synchronize
 
 from vk.exceptions import CommunityDoesNotExist
 from vk.private_data import test_settings
-from wallcontroller.comments_filter import to_dict, deleting_comments_list
+from wallcontroller.comments_filter import deleting_comments_list
 
 
 def setUpModule():
@@ -93,52 +92,49 @@ class TestGettingComments(TestCase):
 
             TEST_COMMUNITY.api.delete_comment(created_comment_id)
 
-    def test_get_comments_in_dict(self):
-        with unittest.mock.patch('default.celeryconfig.CELERY_ALWAYS_EAGER',
-                                 True, create=True):
-            synchronize.delay()
-            synchronize.delay()
-            comments_in_dict = to_dict(Comment.objects.all())
-            self.assertTrue(isinstance(comments_in_dict, dict))
-            self.assertTrue(len(comments_in_dict) > 0)
 
-
-class TestFilteringComments(TestCase):
+class TestFilteringFakeComments(TestCase):
     @classmethod
     def setUpClass(cls):
-        """
-            100 — checks that likes_c = 3, than comment will be saved;
-            4 — have to be deleted because of didn't get any likes for 5 hours;
-            9, 33 — should be saved because of too few time has passed
-            1 — has only one stamp, so shouldn't be deleted
-        """
-        cls.comments_dict_example = {
-            100: [
-                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 562609), 'likes_c': 0, 'pk': 28},
-                {'sync_ts': datetime.datetime(2016, 9, 27, 15, 1, 31, 546330), 'likes_c': 3, 'pk': 61}
-            ],
-            4: [
-                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 550045), 'likes_c': 1, 'pk': 3},
-                {'sync_ts': datetime.datetime(2016, 9, 27, 17, 43, 1, 528903), 'likes_c': 1, 'pk': 36}
-            ],
-            9: [
-                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 550045), 'likes_c': 0, 'pk': 1},
-                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 3, 1, 528903), 'likes_c': 0, 'pk': 13}
-            ],
-            33: [
-                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 15, 0), 'likes_c': 0, 'pk': 4},
-                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 0), 'likes_c': 0, 'pk': 17}
-            ],
-            1: [
-                {'sync_ts': datetime.datetime(2016, 9, 27, 12, 1, 30, 0), 'likes_c': 0, 'pk': 5}
-            ],
+        cls.comments = {
+            "c1": Comment(vk_id=0, community=TEST_COMMUNITY,
+                          likes_count=1, sync_ts=10 * 3600, creation_ts=0),
+            "c2": Comment(vk_id=1, community=TEST_COMMUNITY,
+                          likes_count=1, sync_ts=0.5 * 3600, creation_ts=0),
+            "c3": Comment(vk_id=2, community=TEST_COMMUNITY,
+                          likes_count=4, sync_ts=24 * 3600, creation_ts=0),
+            "c4": Comment(vk_id=3, community=TEST_COMMUNITY,
+                          likes_count=1, sync_ts=5 * 3600, creation_ts=0),
+            "c5": Comment(vk_id=4, community=TEST_COMMUNITY,
+                          likes_count=2, sync_ts=10, creation_ts=0),
+            "c6": Comment(vk_id=5, community=TEST_COMMUNITY,
+                          likes_count=2, sync_ts=1 * 3600, creation_ts=0),
+            "c7": Comment(vk_id=6, community=TEST_COMMUNITY,
+                          likes_count=0, sync_ts=1 * 3600, creation_ts=0),
+            "c8": Comment(vk_id=7, community=TEST_COMMUNITY,
+                          likes_count=0, sync_ts=1 * 3600, creation_ts=0),
         }
+        for c in cls.comments.values():
+            c.save()
 
-    def test_emaple(self):
-        result = deleting_comments_list(self.comments_dict_example)
-        self.assertEquals(len(result), 1)
-        self.assertTrue(4 in result)
+    def test_sample(self):
+        """ The result should be equal to
+        [<Comment: {likes: 0, vk_id: 7, dtime:1.0h}>, <Comment: {likes: 0, vk_id: 6, dtime:1.0h}>,
+        <Comment: {likes: 1, vk_id: 3, dtime:5.0h}>, <Comment: {likes: 1, vk_id: 0, dtime:10.0h}>]
+
+        """
+        result = deleting_comments_list(Comment.objects.all())
+        self.assertTrue(len(result) == 4)
+
+    def test_empty(self):
+        result = deleting_comments_list([])
+        self.assertTrue(len(result) == 0)
 
     @classmethod
     def tearDownClass(cls):
-        pass
+        for c in cls.comments.values():
+            c.delete()
+
+
+class TestFilteringCommentsInGroups(TestCase):
+    pass

@@ -1,3 +1,4 @@
+import time
 from django.db import models, transaction
 from django.contrib.auth.models import User
 
@@ -37,11 +38,15 @@ class Community(models.Model):
     @transaction.atomic
     def synchronize(self):
         recent_posts = self.get_posts(self.post_count_for_synchronize)
-        comments = self.get_comments_from_post_list(recent_posts)
-        for comment in comments:
-            comment = Comment(community=self, vk_id=comment["id"],
-                              likes_count=comment["likes"]["count"],
-                              vk_post_id=comment["post_id"])
+        vk_comments = self.get_comments_from_post_list(recent_posts)
+        for vk_comment in vk_comments:
+            try:
+                comment = Comment.objects.get(community=self, vk_id=vk_comment["id"])
+            except Comment.DoesNotExist:
+                comment = Comment(community=self, vk_id=vk_comment["id"],
+                                  creation_ts=vk_comment["date"], vk_post_id=vk_comment["post_id"])
+            comment.likes_count = vk_comment["likes"]["count"]
+            comment.sync_ts = time.time()
             comment.save()
 
     def save(self):
@@ -59,8 +64,16 @@ class VkApp(models.Model):
 
 
 class Comment(models.Model):
-    vk_post_id = models.IntegerField()
+    vk_post_id = models.IntegerField(default=0)
     community = models.ForeignKey("Community", null=True, blank=True)
     vk_id = models.IntegerField()
-    sync_ts = models.DateTimeField(auto_now_add=True)
     likes_count = models.IntegerField(default=0)
+    sync_ts = models.FloatField(default=0)
+    creation_ts = models.FloatField(default=0)
+
+    class Meta:
+        unique_together = (("community", "vk_id"),)
+
+    def __repr__(self):
+        return ("<Comment: {likes: %s, vk_id: %s, dtime:%sh}>" % (
+            self.likes_count, self.vk_id, (self.sync_ts - self.creation_ts) / 3600))

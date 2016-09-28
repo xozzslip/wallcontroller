@@ -17,4 +17,3 @@ def synchronize():
     communities = Community.objects.filter(disabled=False)
     for community in communities:
         community.synchronize()
-
