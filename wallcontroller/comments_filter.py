@@ -2,9 +2,11 @@ LOYALTY_COEF = 1
 ZERO_LIKES_PERIOD = 0.2
 
 
-def deleting_comments_list(comments_list):
+def find_trash_comments(comments_list):
     deleting_comments_list = []
     avarage_likes_c = calc_avarage(comments_list)
+    if avarage_likes_c == 0:
+        return []
     for comment in comments_list:
         lifetime = (comment.sync_ts - comment.creation_ts) / 3600
         likes_c = comment.likes_count

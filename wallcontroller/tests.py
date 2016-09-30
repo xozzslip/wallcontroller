@@ -8,7 +8,7 @@ from .tasks import synchronize
 
 from vk.exceptions import CommunityDoesNotExist
 from vk.private_data import test_settings
-from wallcontroller.comments_filter import deleting_comments_list
+from wallcontroller.comments_filter import find_trash_comments
 
 
 def setUpModule():
@@ -123,18 +123,18 @@ class TestFilteringFakeComments(TestCase):
         <Comment: {likes: 1, vk_id: 3, dtime:5.0h}>, <Comment: {likes: 1, vk_id: 0, dtime:10.0h}>]
 
         """
-        result = deleting_comments_list(Comment.objects.all())
+        result = find_trash_comments(Comment.objects.filter(community=TEST_COMMUNITY))
         self.assertTrue(len(result) == 4)
 
     def test_empty(self):
-        result = deleting_comments_list([])
+        result = find_trash_comments([])
         self.assertTrue(len(result) == 0)
+
+    def test_find_trash(self):
+        trash_comments = TEST_COMMUNITY.find_trash_comments()
+        self.assertTrue(len(trash_comments) == 4)
 
     @classmethod
     def tearDownClass(cls):
         for c in cls.comments.values():
             c.delete()
-
-
-class TestFilteringCommentsInGroups(TestCase):
-    pass

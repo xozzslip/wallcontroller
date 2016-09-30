@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 from vk.commands import get_group
 from vk.custom_api import PublicApiCommands
 
+from wallcontroller.comments_filter import find_trash_comments
+
 
 class Community(models.Model):
     url = models.CharField(max_length=300, null=True, blank=True)
@@ -35,19 +37,17 @@ class Community(models.Model):
     def get_comments_form_post(self, post_id):
         return self.api.get_comments_form_post(post_id)
 
-    @transaction.atomic
-    def synchronize(self):
+    def get_comments(self):
         recent_posts = self.get_posts(self.post_count_for_synchronize)
         vk_comments = self.get_comments_from_post_list(recent_posts)
+        comment_objects = []
         for vk_comment in vk_comments:
-            try:
-                comment = Comment.objects.get(community=self, vk_id=vk_comment["id"])
-            except Comment.DoesNotExist:
-                comment = Comment(community=self, vk_id=vk_comment["id"],
-                                  creation_ts=vk_comment["date"], vk_post_id=vk_comment["post_id"])
-            comment.likes_count = vk_comment["likes"]["count"]
-            comment.sync_ts = time.time()
-            comment.save()
+            comment_objects.append(Comment(vk_comment))
+        return comment_objects
+
+    def find_trash_comments(self):
+        comments = find_trash_comments(self.comment_set.all())
+        return comments
 
     def save(self):
         vk_group = get_group(self.domen_name)
@@ -63,16 +63,12 @@ class VkApp(models.Model):
     access_token = models.CharField(max_length=300)
 
 
-class Comment(models.Model):
-    vk_post_id = models.IntegerField(default=0)
-    community = models.ForeignKey("Community", null=True, blank=True)
-    vk_id = models.IntegerField()
-    likes_count = models.IntegerField(default=0)
-    sync_ts = models.FloatField(default=0)
-    creation_ts = models.FloatField(default=0)
-
-    class Meta:
-        unique_together = (("community", "vk_id"),)
+class Comment:
+    def __init__(self, vk_comment):
+        self.sync_ts = time.time()
+        self.creation_ts = vk_comment["date"]
+        self.likes_count = vk_comment["likes"]["count"]
+        self.vk_id = vk_comment["id"]
 
     def __repr__(self):
         return ("<Comment: {likes: %s, vk_id: %s, dtime:%sh}>" % (
