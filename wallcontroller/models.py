@@ -1,16 +1,13 @@
 import time
-from django.db import models, transaction
+from django.db import models
 from django.contrib.auth.models import User
 
 from vk.commands import get_group
 from vk.custom_api import PublicApiCommands
 
-from wallcontroller.comments_filter import find_trash_comments
-
 
 class Community(models.Model):
     url = models.CharField(max_length=300, null=True, blank=True)
-    app = models.ForeignKey("VkApp", null=True, blank=True)
     domen = models.CharField(max_length=300, null=True, blank=True)
     domen_name = models.CharField(max_length=300)
     title = models.CharField(max_length=300, null=True, blank=True)
@@ -20,13 +17,13 @@ class Community(models.Model):
     post_count_for_synchronize = models.IntegerField(default=50)
     disabled = models.BooleanField(default=False)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.access_token = ""
+
     @property
     def api(self):
-        if self.app:
-            access_token = self.app.access_token
-        else:
-            access_token = ""
-        return PublicApiCommands(access_token=access_token, domen=self.domen)
+        return PublicApiCommands(access_token=self.access_token, domen=self.domen)
 
     def get_posts(self, count):
         return self.api.get_post_list(count)
@@ -45,17 +42,19 @@ class Community(models.Model):
             comment_objects.append(Comment(vk_comment))
         return comment_objects
 
-    def find_trash_comments(self):
-        comments = find_trash_comments(self.comment_set.all())
-        return comments
+    def acquire_token(self):
+        from wallcontroller.queue import tokens_queue
+        self.access_token = tokens_queue.get()
+
+    def release_token(self):
+        from wallcontroller.queue import tokens_queue
+        self.access_token = tokens_queue.put(self.access_token)
 
     def save(self):
         vk_group = get_group(self.domen_name)
         self.domen, self.title = vk_group["id"], vk_group["name"]
         if "photo_200" in vk_group:
             self.pic_url = vk_group["photo_200"]
-        if not self.app:
-            self.app = VkApp.objects.all().order_by('?')[0]
         super().save()
 
 
@@ -64,8 +63,11 @@ class VkApp(models.Model):
 
 
 class Comment:
-    def __init__(self, vk_comment):
-        self.sync_ts = time.time()
+    def __init__(self, vk_comment, sync_ts=None):
+        if not sync_ts:
+            self.sync_ts = time.time()
+        else:
+            self.sync_ts = sync_ts
         self.creation_ts = vk_comment["date"]
         self.likes_count = vk_comment["likes"]["count"]
         self.vk_id = vk_comment["id"]

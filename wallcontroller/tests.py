@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 from .serializers import CommunitySerializer
 from .models import Community, VkApp, Comment
-from .tasks import synchronize
+from .tasks import delete_comments
 
 from vk.exceptions import CommunityDoesNotExist
 from vk.private_data import test_settings
@@ -21,8 +21,7 @@ def setUpModule():
     TEST_APP.save()
 
     global TEST_COMMUNITY
-    TEST_COMMUNITY = Community(domen_name=test_settings.DOMEN_NAME,
-                               app=TEST_APP, user_owner=TEST_USER)
+    TEST_COMMUNITY = Community(domen_name=test_settings.DOMEN_NAME, user_owner=TEST_USER)
     TEST_COMMUNITY.save()
 
     global TEST_POST_ID
@@ -40,8 +39,9 @@ class SerializersTestCase(TestCase):
 class CommunityCreateTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.community = Community(domen_name=test_settings.DOMEN, user_owner=TEST_USER, app=TEST_APP)
+        cls.community = Community(domen_name=test_settings.DOMEN, user_owner=TEST_USER)
         cls.community.save()
+        cls.community.acquire_token()
 
     def test_community_creation(self):
         invalid_domen = "fsdgeroig23gv893veri32"
@@ -65,57 +65,47 @@ class CommunityCreateTestCase(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls.community.release_token()
         cls.community.delete()
 
 
 class TestGettingComments(TestCase):
     def test_detecting_created_comment(self):
-        """Checking that created comment will appear in db after
-        synchronization
+        """Checking that created comment will appear after
+        get_comments()
 
         """
-        with unittest.mock.patch('default.celeryconfig.CELERY_ALWAYS_EAGER',
-                                 True, create=True):
-            synchronize.apply().get()
-            comments = Comment.objects.filter(vk_post_id=TEST_POST_ID)
-            created_comment_id = TEST_COMMUNITY.api.create_comment(
-                text=test_settings.TEST_COMMENT,
-                post_id=TEST_POST_ID
-            )
-            comments_ids = [c.vk_id for c in comments]
-            self.assertFalse(created_comment_id in comments_ids)
+        TEST_COMMUNITY.acquire_token()
+        comments = TEST_COMMUNITY.get_comments()
+        comments_ids = [c.vk_id for c in comments]
 
-            synchronize.apply().get()
-            comments = Comment.objects.filter(vk_post_id=TEST_POST_ID)
-            comments_ids = [c.vk_id for c in comments]
-            self.assertTrue(created_comment_id in comments_ids)
+        created_comment_id = TEST_COMMUNITY.api.create_comment(
+            text=test_settings.TEST_COMMENT,
+            post_id=TEST_POST_ID
+        )
+        self.assertFalse(created_comment_id in comments_ids)
 
-            TEST_COMMUNITY.api.delete_comment(created_comment_id)
+        comments = TEST_COMMUNITY.get_comments()
+        comments_ids = [c.vk_id for c in comments]
+        self.assertTrue(created_comment_id in comments_ids)
+
+        TEST_COMMUNITY.api.delete_comment(created_comment_id)
+        TEST_COMMUNITY.release_token()
 
 
 class TestFilteringFakeComments(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.comments = {
-            "c1": Comment(vk_id=0, community=TEST_COMMUNITY,
-                          likes_count=1, sync_ts=10 * 3600, creation_ts=0),
-            "c2": Comment(vk_id=1, community=TEST_COMMUNITY,
-                          likes_count=1, sync_ts=0.5 * 3600, creation_ts=0),
-            "c3": Comment(vk_id=2, community=TEST_COMMUNITY,
-                          likes_count=4, sync_ts=24 * 3600, creation_ts=0),
-            "c4": Comment(vk_id=3, community=TEST_COMMUNITY,
-                          likes_count=1, sync_ts=5 * 3600, creation_ts=0),
-            "c5": Comment(vk_id=4, community=TEST_COMMUNITY,
-                          likes_count=2, sync_ts=10, creation_ts=0),
-            "c6": Comment(vk_id=5, community=TEST_COMMUNITY,
-                          likes_count=2, sync_ts=1 * 3600, creation_ts=0),
-            "c7": Comment(vk_id=6, community=TEST_COMMUNITY,
-                          likes_count=0, sync_ts=1 * 3600, creation_ts=0),
-            "c8": Comment(vk_id=7, community=TEST_COMMUNITY,
-                          likes_count=0, sync_ts=1 * 3600, creation_ts=0),
-        }
-        for c in cls.comments.values():
-            c.save()
+        cls.comments = [
+            Comment({"id": 0, "likes": {"count": 1}, "date": 0}, sync_ts=10 * 3600),
+            Comment({"id": 1, "likes": {"count": 1}, "date": 0}, sync_ts=0.5 * 3600),
+            Comment({"id": 2, "likes": {"count": 4}, "date": 0}, sync_ts=24 * 3600),
+            Comment({"id": 3, "likes": {"count": 1}, "date": 0}, sync_ts=5 * 3600),
+            Comment({"id": 4, "likes": {"count": 2}, "date": 0}, sync_ts=10),
+            Comment({"id": 5, "likes": {"count": 2}, "date": 0}, sync_ts=1 * 3600),
+            Comment({"id": 6, "likes": {"count": 0}, "date": 0}, sync_ts=1 * 3600),
+            Comment({"id": 7, "likes": {"count": 0}, "date": 0}, sync_ts=1 * 3600),
+        ]
 
     def test_sample(self):
         """ The result should be equal to
@@ -123,18 +113,13 @@ class TestFilteringFakeComments(TestCase):
         <Comment: {likes: 1, vk_id: 3, dtime:5.0h}>, <Comment: {likes: 1, vk_id: 0, dtime:10.0h}>]
 
         """
-        result = find_trash_comments(Comment.objects.filter(community=TEST_COMMUNITY))
+        result = find_trash_comments(self.comments)
         self.assertTrue(len(result) == 4)
 
     def test_empty(self):
         result = find_trash_comments([])
         self.assertTrue(len(result) == 0)
 
-    def test_find_trash(self):
-        trash_comments = TEST_COMMUNITY.find_trash_comments()
-        self.assertTrue(len(trash_comments) == 4)
-
     @classmethod
     def tearDownClass(cls):
-        for c in cls.comments.values():
-            c.delete()
+        pass
