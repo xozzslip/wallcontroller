@@ -52,6 +52,9 @@ class PublicApiCommands:
         comment_id = self.connection.make_request(method, params)["comment_id"]
         return comment_id
 
+    def delete_comments(self, comments_list):
+        return self.executable_commands.delete_comments_from_comments_list(comments_list)
+
     def delete_comment(self, comment_id):
         method = "wall.deleteComment"
         params = "owner_id=-%s&comment_id=%s" % (self.domen, comment_id)
@@ -74,6 +77,17 @@ class ExecutablePublicApiCommands:
         lim = REQ_LIMIT_IN_EXECUTE
         range_ = math.ceil(len(post_list) / REQ_LIMIT_IN_EXECUTE)
         return [post_list[i * lim: (i + 1) * lim] for i in range(range_)]
+
+    def responses_list_to_comments(self, responses_list):
+        responses_list = self.adding_post_id_to_response_list(responses_list)
+        list_of_items = [post_comments["items"] for post_comments in responses_list]
+        return reduce(lambda res, x: res + x, list_of_items, [])
+
+    def adding_post_id_to_response_list(self, responses_list):
+        for response in responses_list:
+            for item in response["items"]:
+                item.update({"post_id": response["post_id"]})
+        return responses_list
 
     def get_chunck_of_comments_form_post_list(self, limited_post_list):
         method = "execute"
@@ -98,19 +112,34 @@ class ExecutablePublicApiCommands:
         responses_list = self.connection.make_request(method, params)
         return self.responses_list_to_comments(responses_list)
 
+    def delete_chunck_of_comments_from_comments_list(self, limited_comments_list):
+        method = "execute"
+        comments_ids_list = [comment["id"] for comment in limited_comments_list]
+        сode = """
+            var comments_list = %s;
+            var responses = [];
+            while (comments_list.length > 0){
+                var current_comment = comments_list.pop();
+                var current_response = API.wall.deleteComment({
+                    "owner_id": -%s,
+                    "comment_id": current_comment,
+                });
+                responses.push(current_response);
+            }
+            return responses;
+        """ % (comments_ids_list, self.domen)
+        params = "code=%s" % сode
+        responses_list = self.connection.make_request(method, params)
+        return responses_list
+
     def get_comments_from_post_list(self, post_list):
         items = []
         for limited_post_list in self.split_posts(post_list):
             items += self.get_chunck_of_comments_form_post_list(limited_post_list)
         return items
 
-    def responses_list_to_comments(self, responses_list):
-        responses_list = self.adding_post_id_to_response_list(responses_list)
-        list_of_items = [post_comments["items"] for post_comments in responses_list]
-        return reduce(lambda res, x: res + x, list_of_items, [])
-
-    def adding_post_id_to_response_list(self, responses_list):
-        for response in responses_list:
-            for item in response["items"]:
-                item.update({"post_id": response["post_id"]})
-        return responses_list
+    def delete_comments_from_comments_list(self, comments_list):
+        items = []
+        for limited_comments_list in self.split_posts(comments_list):
+            items += self.delete_chunck_of_comments_from_comments_list(limited_comments_list)
+        return items

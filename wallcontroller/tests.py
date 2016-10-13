@@ -1,4 +1,4 @@
-import unittest
+from unittest.mock import Mock, patch
 from django.test import TestCase
 from django.contrib.auth.models import User
 
@@ -123,3 +123,21 @@ class TestFilteringFakeComments(TestCase):
     @classmethod
     def tearDownClass(cls):
         pass
+
+
+class TestDeletingComments(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        TEST_COMMUNITY.acquire_token()
+
+    def test_finding_and_deleting_comments(self):
+        with patch.object(TEST_COMMUNITY, 'delete_comments', return_value=[]):
+            comments = TEST_COMMUNITY.get_comments()
+            trash_comments = find_trash_comments(comments)
+            delete_comments = TEST_COMMUNITY.delete_comments(trash_comments)
+            self.assertTrue(len(trash_comments) > 0)
+            self.assertTrue(len(delete_comments) == 0)
+
+    @classmethod
+    def tearDownClass(cls):
+        TEST_COMMUNITY.release_token()

@@ -42,13 +42,17 @@ class Community(models.Model):
             comment_objects.append(Comment(vk_comment))
         return comment_objects
 
+    def delete_comments(self, comments):
+        comments_vkrepr = [comment.vk_representation for comment in comments]
+        return self.api.delete_comments(comments_vkrepr)
+
     def acquire_token(self):
         from wallcontroller.queue import tokens_queue
         self.access_token = tokens_queue.get()
 
     def release_token(self):
         from wallcontroller.queue import tokens_queue
-        self.access_token = tokens_queue.put(self.access_token)
+        tokens_queue.put(self.access_token)
 
     def save(self):
         vk_group = get_group(self.domen_name)
@@ -56,6 +60,9 @@ class Community(models.Model):
         if "photo_200" in vk_group:
             self.pic_url = vk_group["photo_200"]
         super().save()
+
+    def __exit__(self):
+        self.release_token()
 
 
 class VkApp(models.Model):
@@ -71,6 +78,8 @@ class Comment:
         self.creation_ts = vk_comment["date"]
         self.likes_count = vk_comment["likes"]["count"]
         self.vk_id = vk_comment["id"]
+
+        self.vk_representation = vk_comment
 
     def __repr__(self):
         return ("<Comment: {likes: %s, vk_id: %s, dtime:%sh}>" % (

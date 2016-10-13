@@ -198,5 +198,45 @@ class TestExecutableApiCommands(unittest.TestCase):
         self.assertEqual(len(comments_com), len(comments_exe))
 
 
+class TestExecutableApiDeleringCommentsCommand(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.exe_commands = ExecutablePublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=TEST_PUBLIC.domen
+        )
+        cls.common_commands = PublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=TEST_PUBLIC.domen
+        )
+        test_post = cls.common_commands.get_post_by_text(text=test_settings.TEST_POST)
+        cls.post_id = test_post["id"]
+        cls.created_comment_id = cls.common_commands.create_comment(
+            text=test_settings.TEST_COMMENT,
+            post_id=cls.post_id
+        )
+
+    def test_delete_chunck_of_comments_from_comments_list(self):
+        comment = {"id": self.created_comment_id}
+        response_list = self.exe_commands.delete_chunck_of_comments_from_comments_list(
+            limited_comments_list=[comment]
+        )
+        self.assertTrue(all([response == 1 for response in response_list]))
+
+    def test_delete_comments_form_comments_list(self):
+        COMMENTS_COUNT = 2
+        comments_ids = []
+        for _ in range(COMMENTS_COUNT):
+            comment_id = self.common_commands.create_comment(
+                text=test_settings.TEST_COMMENT,
+                post_id=self.post_id
+            )
+            comments_ids.append(comment_id)
+        comments = [{"id": comment_id} for comment_id in comments_ids]
+        response_list = self.common_commands.delete_comments(comments)
+
+        self.assertTrue(all([response == 1 for response in response_list]))
+        self.assertTrue(len(response_list) == COMMENTS_COUNT)
+
 if __name__ == '__main__':
     unittest.main()
