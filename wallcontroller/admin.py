@@ -3,3 +3,4 @@ from .models import *
 
 admin.site.register(Community)
 admin.site.register(VkApp)
+admin.site.register(VkAccount)
