@@ -1,32 +1,48 @@
-import multiprocessing.dummy
+from threading import Thread
+from queue import Queue
 from default.celery import app
-from wallcontroller.models import Community, VkAccount
+from wallcontroller.models import VkAccount, Community
 from wallcontroller.comments_filter import find_trash_comments
-
-
-@app.task()
-def delete_comments_in_community(pk, queue):
-    with Community.objects.get(pk=pk) as community:
-        community.set_queue(queue)
-        community.acquire_token()
-        comments = community.get_comments()
-        trash_comments = find_trash_comments(comments)
-        response_list = community.delete_comments(trash_comments)
-        community.release_token()
-        return response_list
 
 
 @app.task()
 def delete_comments():
     for vkaccount in VkAccount.objects.all():
-        queue = make_queue(vkaccount)
+        tokens_queue = make_tokens_queue(vkaccount)
+        threads = []
         for community in vkaccount.community_set.filter(disabled=False):
-            delete_comments_in_community.delay(community.pk, queue)
+            community_task = DeleteCommentsInCommunityTask(community, tokens_queue)
+            t = Thread(target=community_task)
+            t.start()
+            threads.append(t)
+
+    for t in threads:
+        t.join()
 
 
-def make_queue(vkaccount):
-    manager = multiprocessing.dummy.Manager()
-    queue = manager.Queue()
+@app.task()
+def check_is_community_under_moderating(pk):
+    community = Community.objects.get(pk=pk)
+
+
+class DeleteCommentsInCommunityTask:
+    def __init__(self, community, tokens_queue):
+        self.tokens_queue = tokens_queue
+        self.community = community
+
+    def __call__(self):
+        with self.community as community:
+            community.set_queue(self.tokens_queue)
+            community.acquire_token()
+            comments = community.get_comments()
+            trash_comments = find_trash_comments(comments)
+            response_list = community.delete_comments(trash_comments)
+            community.release_token()
+            print("%s %s %s %s" % (community.title, len(comments), len(response_list)))
+
+
+def make_tokens_queue(vkaccount):
+    queue = Queue()
     for vkapp in vkaccount.vkapp_set.all():
         queue.put(vkapp.access_token)
     return queue

@@ -1,9 +1,9 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from django.test import TestCase
 from django.contrib.auth.models import User
 
 from .serializers import CommunitySerializer
-from .models import Community, VkApp, Comment
+from .models import Community, VkApp, Comment, VkAccount
 from .tasks import delete_comments
 
 from vk.exceptions import CommunityDoesNotExist
@@ -16,12 +16,18 @@ def setUpModule():
     TEST_USER = User(username="kek", password="kokok1", email="k@k.com")
     TEST_USER.save()
 
+    global TEST_ACCOUNT
+    TEST_ACCOUNT = VkAccount()
+    TEST_ACCOUNT.save()
+
     global TEST_APP
-    TEST_APP = VkApp(access_token=test_settings.ACCESS_TOKEN)
+    TEST_APP = VkApp(access_token=test_settings.ACCESS_TOKEN, account=TEST_ACCOUNT)
     TEST_APP.save()
 
     global TEST_COMMUNITY
-    TEST_COMMUNITY = Community(domen_name=test_settings.DOMEN_NAME, user_owner=TEST_USER)
+    TEST_COMMUNITY = Community(domen_name=test_settings.DOMEN_NAME, user_owner=TEST_USER,
+                               moderator=TEST_ACCOUNT)
+    TEST_COMMUNITY.access_token = TEST_APP.access_token
     TEST_COMMUNITY.save()
 
     global TEST_POST_ID
@@ -39,9 +45,10 @@ class SerializersTestCase(TestCase):
 class CommunityCreateTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.community = Community(domen_name=test_settings.DOMEN, user_owner=TEST_USER)
+        cls.community = Community(domen_name=test_settings.DOMEN, user_owner=TEST_USER,
+                                  moderator=TEST_ACCOUNT)
         cls.community.save()
-        cls.community.acquire_token()
+        cls.community.access_token = TEST_APP.access_token
 
     def test_community_creation(self):
         invalid_domen = "fsdgeroig23gv893veri32"
@@ -65,7 +72,6 @@ class CommunityCreateTestCase(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.community.release_token()
         cls.community.delete()
 
 
@@ -75,7 +81,6 @@ class TestGettingComments(TestCase):
         get_comments()
 
         """
-        TEST_COMMUNITY.acquire_token()
         comments = TEST_COMMUNITY.get_comments()
         comments_ids = [c.vk_id for c in comments]
 
@@ -90,7 +95,6 @@ class TestGettingComments(TestCase):
         self.assertTrue(created_comment_id in comments_ids)
 
         TEST_COMMUNITY.api.delete_comment(created_comment_id)
-        TEST_COMMUNITY.release_token()
 
 
 class TestFilteringFakeComments(TestCase):
@@ -126,18 +130,10 @@ class TestFilteringFakeComments(TestCase):
 
 
 class TestDeletingComments(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        TEST_COMMUNITY.acquire_token()
-
     def test_finding_and_deleting_comments(self):
         with patch.object(TEST_COMMUNITY, 'delete_comments', return_value=[]):
             comments = TEST_COMMUNITY.get_comments()
             trash_comments = find_trash_comments(comments)
-            delete_comments = TEST_COMMUNITY.delete_comments(trash_comments)
-            self.assertTrue(len(trash_comments) > 0)
-            self.assertTrue(len(delete_comments) == 0)
-
-    @classmethod
-    def tearDownClass(cls):
-        TEST_COMMUNITY.release_token()
+            delete_comments_list = TEST_COMMUNITY.delete_comments(trash_comments)
+        self.assertTrue(len(trash_comments) >= 0)
+        self.assertTrue(len(delete_comments_list) == 0)

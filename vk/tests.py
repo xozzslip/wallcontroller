@@ -135,6 +135,10 @@ class TestPublicApiCommandsAccessTokenRequired(unittest.TestCase):
         find_deleted_comment = [c for c in comments if c["id"] == created_comment_id]
         self.assertTrue(len(find_deleted_comment) == 0)
 
+    def test_get_groups(self):
+        moderating_communities = self.public.get_groups_under_moderation()
+        self.assertIn(self.public.domen, moderating_communities)
+
 
 class TestCommands(unittest.TestCase):
     def test_get_group_domen(self):

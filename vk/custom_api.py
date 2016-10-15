@@ -66,6 +66,11 @@ class PublicApiCommands:
         desired_post = [post for post in post_list if text in post["text"]][0]
         return desired_post
 
+    def get_groups_under_moderation(self):
+        method = "groups.get"
+        params = "filter=admin,editor,moder&count=1000"
+        return self.connection.make_request(method, params)
+
 
 class ExecutablePublicApiCommands:
     def __init__(self, access_token, domen):

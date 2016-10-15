@@ -1,8 +1,12 @@
 import time
+from threading import Lock
 from django.db import models
 from django.contrib.auth.models import User
 from vk.commands import get_group
 from vk.custom_api import PublicApiCommands
+
+
+access_token_lock = Lock()
 
 
 class Community(models.Model):
@@ -16,6 +20,7 @@ class Community(models.Model):
 
     post_count_for_synchronize = models.IntegerField(default=50)
     disabled = models.BooleanField(default=False)
+    under_moderation = models.BooleanField(default=False)
 
     access_token = ""
     queue = None
@@ -49,21 +54,23 @@ class Community(models.Model):
         self.queue = queue
 
     def acquire_token(self):
-        self.access_token = self.queue.get()
+        self.access_token = self.queue.get(block=True)
 
     def release_token(self):
         if not self.queue:
             assert self.access_token == ""
-        self.access_token = ""
         if self.queue:
             self.queue.put(self.access_token)
-            self.queue = None
+        self.queue = None
+        self.access_token = ""
 
     def save(self):
-        vk_group = get_group(self.domen_name)
-        self.domen, self.title = vk_group["id"], vk_group["name"]
-        if "photo_200" in vk_group:
-            self.pic_url = vk_group["photo_200"]
+        if self.pk is None:
+            vk_group = get_group(self.domen_name)
+            self.domen, self.title = vk_group["id"], vk_group["name"]
+            if "photo_200" in vk_group:
+                self.pic_url = vk_group["photo_200"]
+
         super().save()
 
     def __enter__(self):
