@@ -57,6 +57,7 @@ class Community(models.Model):
         self.access_token = ""
         if self.queue:
             self.queue.put(self.access_token)
+            self.queue = None
 
     def save(self):
         vk_group = get_group(self.domen_name)

@@ -1,4 +1,4 @@
-from queue import Queue
+import multiprocessing.dummy
 from default.celery import app
 from wallcontroller.models import Community, VkAccount
 from wallcontroller.comments_filter import find_trash_comments
@@ -7,7 +7,8 @@ from wallcontroller.comments_filter import find_trash_comments
 @app.task()
 def delete_comments_in_community(pk, queue):
     with Community.objects.get(pk=pk) as community:
-        community.acquire_token(queue)
+        community.set_queue(queue)
+        community.acquire_token()
         comments = community.get_comments()
         trash_comments = find_trash_comments(comments)
         response_list = community.delete_comments(trash_comments)
@@ -17,14 +18,15 @@ def delete_comments_in_community(pk, queue):
 
 @app.task()
 def delete_comments():
-    communities = Community.objects.filter(disabled=False)[2:3]
-    for vkaccounts in VkAccount.objects.all():
-    for community in communities:
-        pass
-        delete_comments_in_community.delay(community.pk, queue)
+    for vkaccount in VkAccount.objects.all():
+        queue = make_queue(vkaccount)
+        for community in vkaccount.community_set.filter(disabled=False):
+            delete_comments_in_community.delay(community.pk, queue)
 
 
-def make_queue(community):
-    queue = Queue()
-    for vkapp in community.moderator.vkapp_set.all():
+def make_queue(vkaccount):
+    manager = multiprocessing.dummy.Manager()
+    queue = manager.Queue()
+    for vkapp in vkaccount.vkapp_set.all():
         queue.put(vkapp.access_token)
+    return queue
