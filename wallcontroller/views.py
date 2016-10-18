@@ -1,31 +1,49 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import permissions
+from django.shortcuts import render, redirect
+from django.core.urlresolvers import reverse, reverse_lazy
+from django.contrib.auth.decorators import login_required
 
 
 from .models import Community
-from .serializers import CommunitySerializer
+from .forms import AddCommunityForm
 
 
-def communities_render(request):
-    template = "wallcontroller/communities.html"
-    return render(request, template)
+@login_required(login_url=reverse_lazy('base:login'))
+def communities_list(request):
+    template = "wallcontroller/communities_list.html"
+    communities = Community.objects.filter(user_owner=request.user)
+    return render(request, template, {"communities": communities})
 
 
-class CommunitiesList(APIView):
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+@login_required(login_url=reverse_lazy('base:login'))
+def add_community(request):
+    template = "wallcontroller/add_community.html"
+    if request.method == 'POST':
+        form = AddCommunityForm(request.POST)
+        if form.is_valid():
+            domen_name = form.domen_name_from_url()
+            community = Community(domen_name=domen_name, user_owner=request.user)
+            community.save()
+            return redirect(reverse('wallcontroller:communities_list'))
+    else:
+        form = AddCommunityForm()
 
-    def get(self, request):
-        own_communities = Community.objects.filter(user_owner=request.user)
-        serializer = CommunitySerializer(own_communities, many=True)
-        return Response(serializer.data)
+    return render(request, template, {'form': form})
 
 
-class CommunitySingle(APIView):
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+@login_required(login_url=reverse_lazy('base:login'))
+def community(request, pk):
+    template = "wallcontroller/community.html"
+    community = Community.objects.get(pk=pk)
+    return render(request, template, {"community": community})
 
-    def get(self, request, pk):
-        community = Community.objects.get(pk=pk)
-        serializer = CommunitySerializer(community)
-        return Response(serializer.data)
+
+@login_required(login_url=reverse_lazy('base:login'))
+def change_disabled_status(request, pk):
+    community = Community.objects.get(pk=pk)
+    if community.disabled:
+        community.disabled = False
+    else:
+        community.disabled = True
+    community.save()
+    return redirect(reverse('wallcontroller:community', args=pk))
+

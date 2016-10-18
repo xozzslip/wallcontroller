@@ -5,25 +5,21 @@
         <div class="container-fluid">
         <!-- Brand and toggle get grouped for better mobile display -->
         <div class="navbar-header">
-            <a class="navbar-brand bold-black-font" href="#">Wallcontroller <span class="glyphicon glyphicon-search normal-font"></span></a>
+            <a class="navbar-brand bold-black-font" href="/">Wallcontroller</a>
         </div>
     
             
-
+            
             <ul class="nav navbar-nav navbar-right">
-            <li><a href="#" class="black-font">Мои сообщества</a></li>
-            <li class="dropdown black-font">
-                <a href="#" class="dropdown-toggle black-font" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Аккаунт <span class="caret"></span></a>
-                <ul class="dropdown-menu" style="overflow: visible;">
-                <li><a href="#">Настройки</a></li>
-                <li><a href="#">Выйти</a></li>
-                <li><a href="#">Something else here</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="#">Separated link</a></li>
-                <li role="separator" class="divider"></li>
-                <li><a href="#">One more separated link</a></li>
-                </ul>
-            </li>
+            {% if user.is_authenticated %}
+                <li><a href="{% url 'wallcontroller:communities_list' %}" class="black-font">Мои сообщества</a></li>
+                <li><a href="{% url 'base:logout' %}" class="black-font">Выйти</a></li>
+            {% else %}
+                <li><a href="{% url 'base:signup' %}" class="black-font">Зарегистрироваться</a></li>
+                <li><a href="{% url 'base:login' %}" class="black-font">Войти</a></li>
+            {% endif %}
+            </ul>
+            
     </div><!-- /.container-fluid -->
     </nav>
     {% endblock %}

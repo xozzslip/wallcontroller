@@ -22,7 +22,7 @@ class Community(models.Model):
     title = models.CharField(max_length=300, null=True, blank=True)
     pic_url = models.CharField(max_length=300, null=True, blank=True)
     user_owner = models.ForeignKey(User)
-    moderator = models.ForeignKey("VkAccount")
+    moderator = models.ForeignKey("VkAccount", blank=True, null=True)
 
     post_count_for_synchronize = models.IntegerField(default=50)
     disabled = models.BooleanField(default=False)
@@ -73,11 +73,13 @@ class Community(models.Model):
 
     def save(self):
         if self.pk is None:
+            self.moderator = VkAccount.objects.all().order_by('?')[0]
             vk_group = get_group(self.domen_name)
             self.domen, self.title = vk_group["id"], vk_group["name"]
             if "photo_200" in vk_group:
                 self.pic_url = vk_group["photo_200"]
-            self.join()
+            self.join() 
+
         super().save()
 
     @sync
@@ -97,6 +99,9 @@ class Community(models.Model):
 
     def __exit__(self, *args):
         self.release_token()
+
+    def __str__(self):
+        return("%s" % (self.domen_name))
 
 
 class VkApp(models.Model):

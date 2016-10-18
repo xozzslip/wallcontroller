@@ -1,0 +1,25 @@
+{% extends "base/base.html" %}
+
+{% block title %}Add community{% endblock %}
+
+{% block content %} 
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-offset-4 col-md-4">
+            <h4> Новое сообщество </h4>
+            <form action="{% url 'wallcontroller:add_community' %}" method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                <label for="id_url">URL</label>
+                <input type="url" class="form-control" id="id_url" placeholder="https://vk.com/khasanlab"
+                name="url"> 
+                </div>
+
+                <button type="submit" class="btn btn-default">Зарегистрировать</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

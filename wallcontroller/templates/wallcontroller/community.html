@@ -1,0 +1,38 @@
+{% extends "base/base.html" %}
+
+{% block title %}{{ community.title }}{% endblock %}
+
+{% block content %} 
+    <strong>Информация о сообществе</strong><br>
+    Название: {{ community.title }} <br>
+    Домен: {{ community.domen }} <br>
+    Доменное имя: {{ community.domen_name }} <br>
+    <br>
+    <strong>Статус</strong><br>
+    {% if not community.under_moderation %}
+        <div class="alert alert-warning">
+        Вы, пока, не назначили бота модератором вашего сообщества
+        (обновление этого статуса происходит раз в 5 минут)
+        </div>
+    {% endif %}
+
+    {% if community.disabled %}
+        <div class="alert alert-warning">
+        Вы отключили удаление комментариев
+        </div>
+    {% endif %}
+
+    {% if community.under_moderation and not community.disabled %}
+        <div class="alert alert-success">Комментарии удаляются!</div>
+    {% endif %}
+    <br>
+
+
+    <a href="{% url 'wallcontroller:change_disabled_status' community.pk %}">
+        {% if not community.disabled %}
+            Отключить удаление комментариев
+        {% else %}
+            Включить удаление комментариев
+        {% endif %}
+    </a>
+{% endblock %}

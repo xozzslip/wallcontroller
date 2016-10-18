@@ -1,0 +1,35 @@
+{% extends "base/base.html" %}
+
+{% block title %}Wallcontroller{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-offset-4 col-md-4">
+            <h4> Регистрация </h4>
+            <form action="{% url 'base:signup' %}" method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                <label for="id_email">Email</label>
+                <input type="email" class="form-control" id="id_email" placeholder="email"
+                name="email"> 
+                {{ form.email.errors }}
+                </div>
+                <div class="form-group">
+                <label for="id_password1">Пароль</label>
+                <input type="password" class="form-control" id="id_password1" placeholder="password"
+                name="password1"> 
+                {{ form.password1.errors }}
+                </div>
+                <div class="form-group">
+                <label for="id_password2">Подтверждение пароля</label>
+                <input type="password" class="form-control" id="id_password2" placeholder="password"
+                name="password2"> 
+                </div>
+				{{ form.password2.errors }}
+                <button type="submit" class="btn btn-default">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

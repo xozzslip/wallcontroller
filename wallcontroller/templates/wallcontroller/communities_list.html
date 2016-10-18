@@ -1,0 +1,15 @@
+{% extends "base/base.html" %}
+
+{% block title %}Communitites{% endblock %}
+
+{% block content %} 
+<ul>
+    {% for community in communities %}
+        <li>
+            <a href="{% url 'wallcontroller:community' community.pk %}">{{ community.title }}</a>
+        </li>
+    {% endfor %}
+</ul>
+    <hr>
+    <a href="{% url 'wallcontroller:add_community'%}">Добавить сообщество</a>
+{% endblock %}

@@ -36,13 +36,6 @@ def setUpModule():
     TEST_POST_ID = post_in_vk["id"]
 
 
-class SerializersTestCase(TestCase):
-    def test_community_setializer(self):
-        community = Community(url="ff", domen_name="ff", user_owner=TEST_USER)
-        serializer = CommunitySerializer(community)
-        self.assertTrue(len(serializer.data) > 0)
-
-
 class CommunityCreateTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
