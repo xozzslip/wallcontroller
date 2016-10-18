@@ -2,16 +2,22 @@ import time
 from threading import Lock
 from django.db import models
 from django.contrib.auth.models import User
-from vk.commands import get_group
+from vk.commands import get_group, get_groups_under_moderation
 from vk.custom_api import PublicApiCommands
 
 
-access_token_lock = Lock()
+def sync(func):
+    def wrapper(self):
+        lock = Lock()
+        lock.acquire()
+        func(self)
+        lock.release()
+    return wrapper
 
 
 class Community(models.Model):
     url = models.CharField(max_length=300, null=True, blank=True)
-    domen = models.CharField(max_length=300, null=True, blank=True)
+    domen = models.IntegerField(null=True, blank=True)
     domen_name = models.CharField(max_length=300)
     title = models.CharField(max_length=300, null=True, blank=True)
     pic_url = models.CharField(max_length=300, null=True, blank=True)
@@ -54,11 +60,12 @@ class Community(models.Model):
         self.queue = queue
 
     def acquire_token(self):
-        self.access_token = self.queue.get(block=True)
+        if self.queue:
+            self.access_token = self.queue.get(block=True)
+        else:
+            self.access_token = self.moderator.vkapp_set.all()[0].access_token
 
     def release_token(self):
-        if not self.queue:
-            assert self.access_token == ""
         if self.queue:
             self.queue.put(self.access_token)
         self.queue = None
@@ -70,8 +77,20 @@ class Community(models.Model):
             self.domen, self.title = vk_group["id"], vk_group["name"]
             if "photo_200" in vk_group:
                 self.pic_url = vk_group["photo_200"]
-
+            self.join()
         super().save()
+
+    @sync
+    def join(self):
+        self.acquire_token()
+        self.api.join()
+        self.release_token()
+
+    @sync
+    def leave(self):
+        self.acquire_token()
+        self.api.leave()
+        self.release_token()
 
     def __enter__(self):
         return self
@@ -89,6 +108,13 @@ class VkAccount(models.Model):
     url = models.CharField(max_length=300, blank=True, null=True)
     name = models.CharField(max_length=300, blank=True, null=True)
 
+    def update_communities_moderation_statuses(self):
+        access_token = self.vkapp_set.all()[0].access_token
+        communities_under_moderation = get_groups_under_moderation(access_token)
+        for community in self.community_set.all():
+            is_under_moderation = community.domen in communities_under_moderation
+            community.under_moderation = is_under_moderation
+            community.save()
 
 class Comment:
     def __init__(self, vk_comment, sync_ts=None):

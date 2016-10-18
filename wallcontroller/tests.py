@@ -27,8 +27,9 @@ def setUpModule():
     global TEST_COMMUNITY
     TEST_COMMUNITY = Community(domen_name=test_settings.DOMEN_NAME, user_owner=TEST_USER,
                                moderator=TEST_ACCOUNT)
-    TEST_COMMUNITY.access_token = TEST_APP.access_token
     TEST_COMMUNITY.save()
+    TEST_COMMUNITY.acquire_token()
+
 
     global TEST_POST_ID
     post_in_vk = TEST_COMMUNITY.api.get_post_by_text(text=test_settings.TEST_POST)
@@ -137,3 +138,16 @@ class TestDeletingComments(TestCase):
             delete_comments_list = TEST_COMMUNITY.delete_comments(trash_comments)
         self.assertTrue(len(trash_comments) >= 0)
         self.assertTrue(len(delete_comments_list) == 0)
+
+
+class TestAccounts(TestCase):
+    def test_moderation_statuses(self):
+        TEST_COMMUNITY.under_moderation = False
+        TEST_COMMUNITY.save()
+
+        self.assertFalse(TEST_COMMUNITY.under_moderation)
+
+        TEST_ACCOUNT.update_communities_moderation_statuses()
+        new_instance_of_test_community = Community.objects.get(pk=TEST_COMMUNITY.pk)
+
+        self.assertTrue(new_instance_of_test_community.under_moderation)

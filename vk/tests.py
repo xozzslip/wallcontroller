@@ -4,7 +4,8 @@ from .vkapi import VkApi
 from .custom_api import (PublicApiCommands, ExecutablePublicApiCommands,
                          REQ_LIMIT_IN_EXECUTE)
 from .exceptions import VkApiError
-from .commands import get_group, get_group_domen, get_group_domen_and_title
+from .commands import (get_group, get_group_domen, get_group_domen_and_title,
+    get_groups_under_moderation, get_groups)
 from vk.private_data import test_settings
 
 
@@ -135,9 +136,21 @@ class TestPublicApiCommandsAccessTokenRequired(unittest.TestCase):
         find_deleted_comment = [c for c in comments if c["id"] == created_comment_id]
         self.assertTrue(len(find_deleted_comment) == 0)
 
-    def test_get_groups(self):
-        moderating_communities = self.public.get_groups_under_moderation()
-        self.assertIn(self.public.domen, moderating_communities)
+    def join_and_leave_community(self):
+        groups = get_groups(test_settings.ACCESS_TOKEN)
+
+        big_public = PublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=BIG_PUBLIC.domen
+        )
+        self.assertFalse(big_public.domen in groups)
+        big_public.join()
+        groups = get_groups(test_settings.ACCESS_TOKEN)
+        self.assertTrue(big_public.domen in groups)
+
+        big_public.leave()
+        groups = get_groups(test_settings.ACCESS_TOKEN)
+        self.assertFalse(big_public.domen in groups)
 
 
 class TestCommands(unittest.TestCase):
@@ -156,6 +169,14 @@ class TestCommands(unittest.TestCase):
         with self.assertRaises(VkApiError) as er:
             get_group(domen_name)
         self.assertEqual(er.exception.code, 100)
+
+    def test_get_moderating_groups(self):
+        moderating_communities = get_groups_under_moderation(test_settings.ACCESS_TOKEN)
+        self.assertIn(TEST_PUBLIC.domen, moderating_communities)
+
+    def test_get_all_groups(self):
+        groups = get_groups(test_settings.ACCESS_TOKEN)
+        self.assertIn(TEST_PUBLIC.domen, groups)
 
 
 class TestExecutableApiCommands(unittest.TestCase):

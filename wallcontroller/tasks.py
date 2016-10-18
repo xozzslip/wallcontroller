@@ -8,9 +8,11 @@ from wallcontroller.comments_filter import find_trash_comments
 @app.task()
 def delete_comments():
     for vkaccount in VkAccount.objects.all():
+        vkaccount.update_communities_moderation_statuses()
         tokens_queue = make_tokens_queue(vkaccount)
         threads = []
-        for community in vkaccount.community_set.filter(disabled=False):
+        for community in vkaccount.community_set.filter(disabled=False, 
+                                                        under_moderation=True):
             community_task = DeleteCommentsInCommunityTask(community, tokens_queue)
             t = Thread(target=community_task)
             t.start()
@@ -18,11 +20,6 @@ def delete_comments():
 
     for t in threads:
         t.join()
-
-
-@app.task()
-def check_is_community_under_moderating(pk):
-    community = Community.objects.get(pk=pk)
 
 
 class DeleteCommentsInCommunityTask:
@@ -38,7 +35,7 @@ class DeleteCommentsInCommunityTask:
             trash_comments = find_trash_comments(comments)
             response_list = community.delete_comments(trash_comments)
             community.release_token()
-            print("%s %s %s %s" % (community.title, len(comments), len(response_list)))
+            print("%s %s %s" % (community.title, len(comments), len(response_list)))
 
 
 def make_tokens_queue(vkaccount):
