@@ -3,5 +3,30 @@
 {% block title %}Wallcontroller{% endblock %}
 
 {% block content %}
-	KEKAS
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-offset-3 col-md-6">
+                <h3> Контроллёр стены </h3>
+                Контроллёр стены — это бот
+                для фильтрации комментариев <u>по лайкам</u> в ваших сообществах ВКонтакте. И это бесплатно :)
+                <br><br>
+                Для начала работы необходимо выполнить 2 шага
+                {% if not user.is_authenticated %}
+                , правда сперва придется <a href="{% url 'base:signup' %}">зарегистрироваться</a> или <a href="{% url 'base:login' %}">войти</a>
+
+                {% endif %}
+                <br>
+                <br>
+                <ol>
+                    <li> <a href="{% url 'wallcontroller:add_community' %}">Зарегистрировать </a> сообщество на сервисе   </li>
+                    <li> Назначить бота <a href="https://vk.com/controllerbot">https://vk.com/controllerbot</a> модератором сообщества 
+                </ol>
+
+                <br>
+                <br>
+                <hr>
+                По всем вопросам <a href="https://vk.com/khafizov_kh">https://vk.com/khafizov_kh</a>
+            </div>
+        </div>
+    </div>
 {% endblock %}

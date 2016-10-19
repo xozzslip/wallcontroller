@@ -21,9 +21,11 @@ def add_community(request):
         form = AddCommunityForm(request.POST)
         if form.is_valid():
             domen_name = form.domen_name_from_url()
-            community = Community(domen_name=domen_name, user_owner=request.user)
+            url = form.cleaned_data["url"]
+            community = Community(url=url, domen_name=domen_name,
+                                  user_owner=request.user)
             community.save()
-            return redirect(reverse('wallcontroller:communities_list'))
+            return redirect(reverse('wallcontroller:community', args=(community.pk,)))
     else:
         form = AddCommunityForm()
 
@@ -45,5 +47,5 @@ def change_disabled_status(request, pk):
     else:
         community.disabled = True
     community.save()
-    return redirect(reverse('wallcontroller:community', args=pk))
+    return redirect(reverse('wallcontroller:community', args=(pk,)))
 
