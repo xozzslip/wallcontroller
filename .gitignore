@@ -5,3 +5,4 @@ migrations
 celerybeat-schedule
 celerybeat.pid
 vk/private_data/test_settings.py
+default/local_settings.py
