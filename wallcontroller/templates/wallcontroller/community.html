@@ -12,9 +12,9 @@
     {% if not community.under_moderation %}
         <div class="alert alert-warning">
         Вы, пока, не назначили бота модератором вашего сообщества
-        (обновление этого статуса происходит раз в 5 минут)
+        (<abbr title="Если вы уже назначили бота модератором, то этот статус исчезнет в течение 5 минут">обновление</abbr> этого статуса происходит раз в 5 минут)
         <br>
-        <small>Для назначения скопируйте адрес бота "{{ community.moderator.name }}" <u>{{ community.moderator.url }}</u> и пройдите по ссылке <a target="_blank" href="{{ community.url }}?act=users&tab=admins">{{ community.url }}?act=users&tab=admins</a></small>
+        <small>Для назначения скопируйте <abbr title="Либо просто введите в поиске имя бота: {{ community.moderator.name }}">адрес бота</abbr> <u>{{ community.moderator.url }}</u> и пройдите по ссылке <a target="_blank" href="{{ community.url }}?act=users&tab=admins">{{ community.url }}?act=users&tab=admins</a></small>
         </div>
     {% endif %}
 
