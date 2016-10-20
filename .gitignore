@@ -3,6 +3,7 @@
 __pycache__
 migrations
 celerybeat-schedule
+celerybeat-schedule.db
 celerybeat.pid
 vk/private_data/test_settings.py
 default/local_settings.py
