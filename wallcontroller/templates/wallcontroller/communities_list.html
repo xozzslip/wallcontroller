@@ -3,6 +3,9 @@
 {% block title %}Communitites{% endblock %}
 
 {% block content %} 
+{% if not communities %}
+Есть чё поудалять?
+{% endif %}
 <ul>
     {% for community in communities %}
         <li>

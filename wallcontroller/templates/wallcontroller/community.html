@@ -14,7 +14,8 @@
         Вы, пока, не назначили бота модератором вашего сообщества
         (<abbr title="Если вы уже назначили бота модератором, то этот статус исчезнет в течение 5 минут">обновление</abbr> этого статуса происходит раз в 5 минут)
         <br>
-        <small>Для назначения скопируйте <abbr title="Либо просто введите в поиске имя бота: {{ community.moderator.name }}">адрес бота</abbr> <u>{{ community.moderator.url }}</u> и пройдите по ссылке <a target="_blank" href="{{ community.url }}?act=users&tab=admins">{{ community.url }}?act=users&tab=admins</a></small>
+        <small><u>Добавить руководителя</u> можно по ссылке <a target="_blank" href="{{ community.url }}?act=users&tab=admins">{{ community.url }}?act=users&tab=admins</a>.<br>Перейдя по адресу нажмите "Добавить руководителя" и вбейте в поиск по подписчикам адрес бота<u> {{ community.moderator.url }}</u> либо имя бота: {{ community.moderator.name }}. Для функционирования достаточно прав модератора
+        <br> За отражение в блоке контактов — благодарчик! </small>
         </div>
     {% endif %}
 
@@ -25,7 +26,7 @@
     {% endif %}
 
     {% if community.under_moderation and not community.disabled %}
-        <div class="alert alert-success">Комментарии удаляются!</div>
+        <div class="alert alert-success">Комментарии удаляются! <br> <small>Сессия удаления начинается каждые 5 минут</small></div>
     {% endif %}
     <br>
 

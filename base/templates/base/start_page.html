@@ -6,19 +6,19 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-offset-3 col-md-6">
-                <h3> Контроллёр стены </h3>
-                Контроллёр стены — это бот
+                <h3> Контролёр стены </h3>
+                Контролёр стены — это бот
                 для фильтрации комментариев <u>по лайкам</u> в ваших сообществах ВКонтакте. И это бесплатно :)
                 <br><br>
                 Для начала работы необходимо выполнить 2 шага
                 {% if not user.is_authenticated %}
-                , правда сперва придется <a href="{% url 'base:signup' %}">зарегистрироваться</a> или <a href="{% url 'base:login' %}">войти</a>
+                , но сперва придется <a href="{% url 'base:signup' %}">зарегистрироваться</a> (за 5 секунд, без подтверждения) или <a href="{% url 'base:login' %}">войти</a>
 
                 {% endif %}
                 <br>
                 <br>
                 <ol>
-                    <li> <a href="{% url 'wallcontroller:add_community' %}">Зарегистрировать </a> сообщество на сервисе   </li>
+                    <li> <a href="{% url 'wallcontroller:add_community' %}">Добавить </a> сообщество на сервис   </li>
                     <li> Назначить бота <a href="https://vk.com/controllerbot">https://vk.com/controllerbot</a> модератором сообщества 
                 </ol>
 
