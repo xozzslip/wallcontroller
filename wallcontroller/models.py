@@ -28,6 +28,9 @@ class Community(models.Model):
     disabled = models.BooleanField(default=False)
     under_moderation = models.BooleanField(default=False)
 
+    turnedon_ts = models.IntegerField(default=0)
+    clean_only_new_posts = models.BooleanField(default=True)
+
     access_token = ""
     queue = None
 
@@ -56,6 +59,13 @@ class Community(models.Model):
         comments_vkrepr = [comment.vk_representation for comment in comments]
         return self.api.delete_comments(comments_vkrepr)
 
+    def change_disabled_status(self):
+        if self.disabled is True:
+            self.disabled = False
+        else:
+            self.disabled = True
+            self.turnedon_ts = time.time()
+
     def set_queue(self, queue):
         self.queue = queue
 
@@ -78,7 +88,7 @@ class Community(models.Model):
             self.domen, self.title = vk_group["id"], vk_group["name"]
             if "photo_200" in vk_group:
                 self.pic_url = vk_group["photo_200"]
-            self.join() 
+            self.join()
 
         super().save()
 
@@ -120,6 +130,7 @@ class VkAccount(models.Model):
             is_under_moderation = community.domen in communities_under_moderation
             community.under_moderation = is_under_moderation
             community.save()
+
 
 class Comment:
     def __init__(self, vk_comment, sync_ts=None):

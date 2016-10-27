@@ -42,10 +42,7 @@ def community(request, pk):
 @login_required(login_url=reverse_lazy('base:login'))
 def change_disabled_status(request, pk):
     community = Community.objects.get(pk=pk)
-    if community.disabled:
-        community.disabled = False
-    else:
-        community.disabled = True
+    community.change_disabled_status()
     community.save()
     return redirect(reverse('wallcontroller:community', args=(pk,)))
 

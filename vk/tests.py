@@ -1,4 +1,5 @@
 import unittest
+import time
 
 from .vkapi import VkApi
 from .custom_api import (PublicApiCommands, ExecutablePublicApiCommands,
@@ -262,6 +263,39 @@ class TestExecutableApiDeleringCommentsCommand(unittest.TestCase):
 
         self.assertTrue(all([response == 1 for response in response_list]))
         self.assertTrue(len(response_list) == COMMENTS_COUNT)
+
+
+class TestUnixTimestampInVK(unittest.TestCase):
+    """
+    Checks that unix timestamp in vk is the same that in datetime
+
+    """
+    @classmethod
+    def setUpClass(cls):
+        cls.public = PublicApiCommands(
+            access_token=test_settings.ACCESS_TOKEN,
+            domen=TEST_PUBLIC.domen
+        )
+        test_post = cls.public.get_post_by_text(text=test_settings.TEST_POST)
+        cls.post_id = test_post["id"]
+
+    def test_create_post_and_check_unixts(self):
+        creation_ts = time.time()
+        comment_id = self.public.create_comment(
+            text=test_settings.TEST_COMMENT,
+            post_id=self.post_id
+        )
+        comments = self.public.get_comments_form_post(self.post_id)
+        created_comment = [comment for comment in comments if comment["id"] == comment_id]
+        created_comment = created_comment[0]
+
+        MAX_DELAY_IN_SEC = 10
+        self.assertTrue(creation_ts - created_comment["date"] < MAX_DELAY_IN_SEC)
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()

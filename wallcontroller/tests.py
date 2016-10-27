@@ -133,7 +133,7 @@ class TestDeletingComments(TestCase):
         self.assertTrue(len(delete_comments_list) == 0)
 
 
-class TestAccounts(TestCase):
+class TestModels(TestCase):
     def test_moderation_statuses(self):
         TEST_COMMUNITY.under_moderation = False
         TEST_COMMUNITY.save()
@@ -144,3 +144,13 @@ class TestAccounts(TestCase):
         new_instance_of_test_community = Community.objects.get(pk=TEST_COMMUNITY.pk)
 
         self.assertTrue(new_instance_of_test_community.under_moderation)
+
+    def test_community_change_status(self):
+        disabled_was = TEST_COMMUNITY.disabled
+        turnedon_ts_was = TEST_COMMUNITY.turnedon_ts
+        TEST_COMMUNITY.change_disabled_status()
+        disabled_now = TEST_COMMUNITY.disabled
+        turnedon_ts_now = TEST_COMMUNITY.turnedon_ts
+
+        self.assertTrue(disabled_was is not disabled_now)
+        self.assertTrue(turnedon_ts_now >= turnedon_ts_was)
