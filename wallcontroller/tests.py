@@ -1,3 +1,4 @@
+import time
 from unittest.mock import patch
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -26,10 +27,9 @@ def setUpModule():
 
     global TEST_COMMUNITY
     TEST_COMMUNITY = Community(domen_name=test_settings.DOMEN_NAME, user_owner=TEST_USER,
-                               moderator=TEST_ACCOUNT)
+                               moderator=TEST_ACCOUNT, clean_only_new_posts=False)
     TEST_COMMUNITY.save()
     TEST_COMMUNITY.acquire_token()
-
 
     global TEST_POST_ID
     post_in_vk = TEST_COMMUNITY.api.get_post_by_text(text=test_settings.TEST_POST)
@@ -95,14 +95,14 @@ class TestFilteringFakeComments(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.comments = [
-            Comment({"id": 0, "likes": {"count": 1}, "date": 0}, sync_ts=10 * 3600),
-            Comment({"id": 1, "likes": {"count": 1}, "date": 0}, sync_ts=0.5 * 3600),
-            Comment({"id": 2, "likes": {"count": 4}, "date": 0}, sync_ts=24 * 3600),
-            Comment({"id": 3, "likes": {"count": 1}, "date": 0}, sync_ts=5 * 3600),
-            Comment({"id": 4, "likes": {"count": 2}, "date": 0}, sync_ts=10),
-            Comment({"id": 5, "likes": {"count": 2}, "date": 0}, sync_ts=1 * 3600),
-            Comment({"id": 6, "likes": {"count": 0}, "date": 0}, sync_ts=1 * 3600),
-            Comment({"id": 7, "likes": {"count": 0}, "date": 0}, sync_ts=1 * 3600),
+            Comment({"id": 0, "post_date": 0, "likes": {"count": 1}, "date": 0}, sync_ts=10 * 3600),
+            Comment({"id": 1, "post_date": 0, "likes": {"count": 1}, "date": 0}, sync_ts=0.5 * 3600),
+            Comment({"id": 2, "post_date": 0, "likes": {"count": 4}, "date": 0}, sync_ts=24 * 3600),
+            Comment({"id": 3, "post_date": 0, "likes": {"count": 1}, "date": 0}, sync_ts=5 * 3600),
+            Comment({"id": 4, "post_date": 0, "likes": {"count": 2}, "date": 0}, sync_ts=10),
+            Comment({"id": 5, "post_date": 0, "likes": {"count": 2}, "date": 0}, sync_ts=1 * 3600),
+            Comment({"id": 6, "post_date": 0, "likes": {"count": 0}, "date": 0}, sync_ts=1 * 3600),
+            Comment({"id": 7, "post_date": 0, "likes": {"count": 0}, "date": 0}, sync_ts=1 * 3600),
         ]
 
     def test_sample(self):
@@ -118,9 +118,33 @@ class TestFilteringFakeComments(TestCase):
         result = find_trash_comments([])
         self.assertTrue(len(result) == 0)
 
+    def test_comments_on_new_and_old_posts(self):
+        TEST_COMMUNITY.clean_only_new_posts = True
+        comment_on_old_post = Comment({"id": 1, "post_date": time.time() - 10,
+                                       "likes": {"count": 0}, "date": 0})
+        TEST_COMMUNITY.turnedon_ts = time.time()
+        comment_on_new_post = Comment({"id": 2, "post_date": time.time() + 10,
+                                       "likes": {"count": 0}, "date": 0})
+
+        topical_comments = TEST_COMMUNITY.filter_comments_on_new_posts(
+            [comment_on_old_post]
+        )
+        self.assertTrue(len(topical_comments) == 0)
+
+        topical_comments = TEST_COMMUNITY.filter_comments_on_new_posts(
+            [comment_on_new_post]
+        )
+        self.assertTrue(len(topical_comments) == 1)
+
+        TEST_COMMUNITY.clean_only_new_posts = False
+        topical_comments = TEST_COMMUNITY.filter_comments_on_new_posts(
+            [comment_on_old_post, comment_on_new_post]
+        )
+        self.assertTrue(len(topical_comments) == 2)
+
     @classmethod
     def tearDownClass(cls):
-        pass
+        TEST_COMMUNITY.clean_only_new_posts = False
 
 
 class TestDeletingComments(TestCase):
@@ -131,6 +155,21 @@ class TestDeletingComments(TestCase):
             delete_comments_list = TEST_COMMUNITY.delete_comments(trash_comments)
         self.assertTrue(len(trash_comments) >= 0)
         self.assertTrue(len(delete_comments_list) == 0)
+
+    def test_finding_trash_comments_community_method(self):
+        community_with_trash = Community(domen_name="rfpl", user_owner=TEST_USER,
+                                         moderator=TEST_ACCOUNT)
+        community_with_trash.save()
+        community_with_trash.acquire_token()
+        community_with_trash.clean_only_new_posts = True
+        comments = community_with_trash.get_comments()
+        community_with_trash.turnedon_ts = time.time()
+        trash = community_with_trash.find_trash_comments(comments)
+        self.assertTrue(len(trash) == 0)
+
+        community_with_trash.clean_only_new_posts = False
+        trash = community_with_trash.find_trash_comments(comments)
+        self.assertTrue(len(trash) > 0)
 
 
 class TestModels(TestCase):

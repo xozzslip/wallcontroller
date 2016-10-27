@@ -45,4 +45,3 @@ def change_disabled_status(request, pk):
     community.change_disabled_status()
     community.save()
     return redirect(reverse('wallcontroller:community', args=(pk,)))
-

@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from vk.commands import get_group, get_groups_under_moderation
 from vk.custom_api import PublicApiCommands
+from wallcontroller.comments_filter import find_trash_comments
 
 
 def sync(func):
@@ -25,7 +26,7 @@ class Community(models.Model):
     moderator = models.ForeignKey("VkAccount", blank=True, null=True)
 
     post_count_for_synchronize = models.IntegerField(default=50)
-    disabled = models.BooleanField(default=False)
+    disabled = models.BooleanField(default=True)
     under_moderation = models.BooleanField(default=False)
 
     turnedon_ts = models.IntegerField(default=0)
@@ -55,16 +56,32 @@ class Community(models.Model):
             comment_objects.append(Comment(vk_comment))
         return comment_objects
 
+    def filter_comments_on_new_posts(self, comments):
+        if self.clean_only_new_posts:
+            comments = [comment for comment in comments
+                        if comment.post_date >= self.turnedon_ts]
+        return comments
+
+    def find_trash_comments(self, comments):
+        comments = self.filter_comments_on_new_posts(comments)
+        return find_trash_comments(comments)
+
     def delete_comments(self, comments):
         comments_vkrepr = [comment.vk_representation for comment in comments]
         return self.api.delete_comments(comments_vkrepr)
 
     def change_disabled_status(self):
         if self.disabled is True:
-            self.disabled = False
+            self.enable()
         else:
-            self.disabled = True
-            self.turnedon_ts = time.time()
+            self.disable()
+
+    def disable(self):
+        self.disabled = True
+
+    def enable(self):
+        self.disabled = False
+        self.turnedon_ts = time.time()
 
     def set_queue(self, queue):
         self.queue = queue
@@ -141,6 +158,7 @@ class Comment:
         self.creation_ts = vk_comment["date"]
         self.likes_count = vk_comment["likes"]["count"]
         self.vk_id = vk_comment["id"]
+        self.post_date = vk_comment["post_date"]
 
         self.vk_representation = vk_comment
 

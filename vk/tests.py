@@ -199,6 +199,9 @@ class TestExecutableApiCommands(unittest.TestCase):
         self.assertTrue(all([e for e in comments_exe if e in comments_com]))
         self.assertTrue(all([c for c in comments_com if c in comments_exe]))
 
+        self.assertTrue("post_date" in comments_exe[0])
+        self.assertTrue("post_id" in comments_exe[0])
+
     def test_split_posts(self):
         EXCESS = 5
         too_long_list = [i for i in range(REQ_LIMIT_IN_EXECUTE + EXCESS)]

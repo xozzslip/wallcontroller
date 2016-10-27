@@ -96,28 +96,33 @@ class ExecutablePublicApiCommands:
     def adding_post_id_to_response_list(self, responses_list):
         for response in responses_list:
             for item in response["items"]:
-                item.update({"post_id": response["post_id"]})
+                item.update({"post_id": response["post_id"],
+                             "post_date": response["post_date"]})
         return responses_list
 
     def get_chunck_of_comments_form_post_list(self, limited_post_list):
         method = "execute"
-        post_ids_list = [post["id"] for post in limited_post_list]
+        posts_ids = [post["id"] for post in limited_post_list]
+        posts_dates = [post["date"] for post in limited_post_list]
         сode = """
-            var post_list = %s;
+            var post_ids_list = %s;
+            var posts_dates = %s;
             var comments_list = [];
-            while (post_list.length > 0){
-                var current_post = post_list.pop();
+            while (post_ids_list.length > 0){
+                var current_post_id = post_ids_list.pop();
+                var current_post_date = posts_dates.pop();
                 var comments = API.wall.getComments({
                     "owner_id": -%s,
                     "need_likes": 1,
-                    "post_id": current_post,
+                    "post_id": current_post_id,
                     "count": 100,
                 });
-                comments.post_id = current_post;
+                comments.post_id = current_post_id;
+                comments.post_date = current_post_date;
                 comments_list.push(comments);
             }
             return comments_list;
-        """ % (post_ids_list, self.domen)
+        """ % (posts_ids, posts_dates, self.domen)
         params = "code=%s" % сode
         responses_list = self.connection.make_request(method, params)
         return self.responses_list_to_comments(responses_list)

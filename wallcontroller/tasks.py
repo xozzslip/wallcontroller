@@ -1,8 +1,7 @@
 from threading import Thread
 from queue import Queue
 from default.celery import app
-from wallcontroller.models import VkAccount, Community
-from wallcontroller.comments_filter import find_trash_comments
+from wallcontroller.models import VkAccount
 
 
 @app.task()
@@ -11,7 +10,7 @@ def delete_comments():
         vkaccount.update_communities_moderation_statuses()
         tokens_queue = make_tokens_queue(vkaccount)
         threads = []
-        for community in vkaccount.community_set.filter(disabled=False, 
+        for community in vkaccount.community_set.filter(disabled=False,
                                                         under_moderation=True):
             community_task = DeleteCommentsInCommunityTask(community, tokens_queue)
             t = Thread(target=community_task)
@@ -32,7 +31,7 @@ class DeleteCommentsInCommunityTask:
             community.set_queue(self.tokens_queue)
             community.acquire_token()
             comments = community.get_comments()
-            trash_comments = find_trash_comments(comments)
+            trash_comments = community.find_trash_comments(comments)
             response_list = community.delete_comments(trash_comments)
             community.release_token()
             print("%s %s %s" % (community.title, len(comments), len(response_list)))
