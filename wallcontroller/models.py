@@ -32,6 +32,8 @@ class Community(models.Model):
     turnedon_ts = models.IntegerField(default=0)
     clean_only_new_posts = models.BooleanField(default=True)
 
+    end_likes_count = models.IntegerField(default=1)
+
     access_token = ""
     queue = None
 
@@ -64,7 +66,7 @@ class Community(models.Model):
 
     def find_trash_comments(self, comments):
         comments = self.filter_comments_on_new_posts(comments)
-        return find_trash_comments(comments)
+        return find_trash_comments(comments, self.end_likes_count)
 
     def delete_comments(self, comments):
         comments_vkrepr = [comment.vk_representation for comment in comments]

@@ -100,9 +100,10 @@ class TestFilteringFakeComments(TestCase):
             Comment({"id": 2, "post_date": 0, "likes": {"count": 4}, "date": 0}, sync_ts=24 * 3600),
             Comment({"id": 3, "post_date": 0, "likes": {"count": 1}, "date": 0}, sync_ts=5 * 3600),
             Comment({"id": 4, "post_date": 0, "likes": {"count": 2}, "date": 0}, sync_ts=10),
-            Comment({"id": 5, "post_date": 0, "likes": {"count": 2}, "date": 0}, sync_ts=1 * 3600),
+            Comment({"id": 5, "post_date": 0, "likes": {"count": 2}, "date": 0}, sync_ts=6 * 3600),
             Comment({"id": 6, "post_date": 0, "likes": {"count": 0}, "date": 0}, sync_ts=1 * 3600),
             Comment({"id": 7, "post_date": 0, "likes": {"count": 0}, "date": 0}, sync_ts=1 * 3600),
+            Comment({"id": 8, "post_date": 0, "likes": {"count": 0}, "date": 0}, sync_ts=10),
         ]
 
     def test_sample(self):
@@ -111,8 +112,8 @@ class TestFilteringFakeComments(TestCase):
         <Comment: {likes: 1, vk_id: 3, dtime:5.0h}>, <Comment: {likes: 1, vk_id: 0, dtime:10.0h}>]
 
         """
-        result = find_trash_comments(self.comments)
-        self.assertTrue(len(result) == 4)
+        result = find_trash_comments(self.comments, end_count=3)
+        self.assertTrue(len(result) == 5)
 
     def test_empty(self):
         result = find_trash_comments([])
