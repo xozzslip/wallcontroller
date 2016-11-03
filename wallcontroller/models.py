@@ -4,7 +4,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from vk.commands import get_group, get_groups_under_moderation
 from vk.custom_api import PublicApiCommands
-from wallcontroller.comments_filter import find_trash_comments
+from wallcontroller.comments_filter import likes_function
 
 
 def sync(func):
@@ -32,7 +32,9 @@ class Community(models.Model):
     turnedon_ts = models.IntegerField(default=0)
     clean_only_new_posts = models.BooleanField(default=True)
 
-    end_likes_count = models.IntegerField(default=1)
+    end_count = models.IntegerField(default=1)
+    end_time = models.IntegerField(default=60 * 60 * 5)
+    loyal_time = models.IntegerField(default=60 * 20)
 
     access_token = ""
     queue = None
@@ -43,6 +45,12 @@ class Community(models.Model):
 
     def get_posts(self, count):
         return self.api.get_post_list(count)
+
+    def create_post(self, text):
+        return self.api.create_post(text)
+
+    def delete_post(self, post_id):
+        return self.api.delete_post(post_id)
 
     def get_comments_from_post_list(self, posts):
         return self.api.get_comments_from_post_list(posts)
@@ -64,9 +72,18 @@ class Community(models.Model):
                         if comment.post_date >= self.turnedon_ts]
         return comments
 
-    def find_trash_comments(self, comments):
+    def find_trash_comments(self, comments_list):
+        deleting_comments_list = []
+        for comment in comments_list:
+            lifetime = comment.sync_ts - comment.creation_ts
+            if comment.likes_count < likes_function(lifetime, self.end_count,
+                                                    self.end_time, self.loyal_time):
+                deleting_comments_list.append(comment)
+        return deleting_comments_list
+
+    def find_trash_comments_after_filtering(self, comments):
         comments = self.filter_comments_on_new_posts(comments)
-        return find_trash_comments(comments, self.end_likes_count)
+        return self.find_trash_comments(comments, self.end_likes_count)
 
     def delete_comments(self, comments):
         comments_vkrepr = [comment.vk_representation for comment in comments]
@@ -165,5 +182,4 @@ class Comment:
         self.vk_representation = vk_comment
 
     def __repr__(self):
-        return ("<Comment: {likes: %s, vk_id: %s, dtime:%sh}>" % (
-            self.likes_count, self.vk_id, (self.sync_ts - self.creation_ts) / 3600))
+        return ("<Comment id: %s>" % self.vk_id)

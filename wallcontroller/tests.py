@@ -8,8 +8,7 @@ from .models import Community, VkApp, Comment, VkAccount
 from .tasks import delete_comments
 
 from vk.exceptions import CommunityDoesNotExist
-from vk.private_data import test_settings
-from wallcontroller.comments_filter import find_trash_comments
+from vk.private_data import test_settings, access_tokens
 
 
 def setUpModule():
@@ -112,11 +111,13 @@ class TestFilteringFakeComments(TestCase):
         <Comment: {likes: 1, vk_id: 3, dtime:5.0h}>, <Comment: {likes: 1, vk_id: 0, dtime:10.0h}>]
 
         """
-        result = find_trash_comments(self.comments, end_count=3)
+        TEST_COMMUNITY.end_count = 3
+        TEST_COMMUNITY.save()
+        result = TEST_COMMUNITY.find_trash_comments(self.comments)
         self.assertTrue(len(result) == 5)
 
     def test_empty(self):
-        result = find_trash_comments([])
+        result = TEST_COMMUNITY.find_trash_comments([])
         self.assertTrue(len(result) == 0)
 
     def test_comments_on_new_and_old_posts(self):
@@ -152,7 +153,7 @@ class TestDeletingComments(TestCase):
     def test_finding_and_deleting_comments(self):
         with patch.object(TEST_COMMUNITY, 'delete_comments', return_value=[]):
             comments = TEST_COMMUNITY.get_comments()
-            trash_comments = find_trash_comments(comments)
+            trash_comments = TEST_COMMUNITY.find_trash_comments(comments)
             delete_comments_list = TEST_COMMUNITY.delete_comments(trash_comments)
         self.assertTrue(len(trash_comments) >= 0)
         self.assertTrue(len(delete_comments_list) == 0)
@@ -194,3 +195,56 @@ class TestModels(TestCase):
 
         self.assertTrue(disabled_was is not disabled_now)
         self.assertTrue(turnedon_ts_now >= turnedon_ts_was)
+
+
+class TestFunctionality(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        for token in access_tokens.tokens:
+            vkapp = VkApp(access_token=token, account=TEST_ACCOUNT)
+            vkapp.save()
+
+        cls.communities = {
+            "c1": Community(
+                domen_name="131810670", user_owner=TEST_USER,
+                moderator=TEST_ACCOUNT, clean_only_new_posts=True,
+                end_count=0, end_time=1, loyal_time=0
+            ),
+            "c2": Community(
+                domen_name="ef4fe", user_owner=TEST_USER,
+                moderator=TEST_ACCOUNT, clean_only_new_posts=True,
+                end_count=10, end_time=1, loyal_time=0
+            ),
+            "c3": Community(
+                domen_name="132256693", user_owner=TEST_USER,
+                moderator=TEST_ACCOUNT, clean_only_new_posts=True,
+                end_count=10, end_time=20, loyal_time=10
+            )
+        }
+
+        for c in cls.communities.values():
+            c.save()
+            c.acquire_token()
+            c.enable()
+
+    def test_communities(self):
+        post_ids = {}
+        comment_ids = {}
+        for name, community in self.communities.items():
+            post_ids[name] = community.create_post(test_settings.TEST_POST)
+            comment_ids[name] = community.api.create_comment(
+                text=test_settings.TEST_COMMENT,
+                post_id=post_ids[name]
+            )
+        delete_comments.apply()
+
+        new_comments_ids = {}
+        for name, community in self.communities.items():
+            new_comments_ids[name] = community.get_comments()
+
+        print(new_comments_ids)
+        print(comment_ids)
+
+    @classmethod
+    def tearDownClass(cls):
+        pass

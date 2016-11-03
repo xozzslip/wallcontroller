@@ -38,7 +38,7 @@ class PublicApiCommands:
     def create_post(self, text):
         method = "wall.post"
         params = "owner_id=-%s&from_group=1&message=%s" % (self.domen, text)
-        post_id = self.connection.make_request(method, params)[0]
+        post_id = self.connection.make_request(method, params)["post_id"]
         return post_id
 
     def delete_post(self, post_id):

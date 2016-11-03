@@ -6,4 +6,5 @@ celerybeat-schedule
 celerybeat-schedule.db
 celerybeat.pid
 vk/private_data/test_settings.py
+vk/private_data/access_tokens.py
 default/local_settings.py
