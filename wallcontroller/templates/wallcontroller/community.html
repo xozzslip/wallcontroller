@@ -52,7 +52,7 @@
     <form action="{% url 'wallcontroller:community' community.pk %}" method="post">
         {% csrf_token %}
         <div class="form-group">
-        <label for="id_end_count">Конечное количество лайков <i class="material-icons" style="font-size: 15px;">favorite</i></label><br>
+        <label for="id_end_count"> Желаемое количество лайков <i class="material-icons" style="font-size: 15px;">favorite</i></label><br>
         <small class="text-muted">Сколько лайков должно быть на комментарии в вашем сообществе через чаc, чтобы его можно было считать хорошим?</small>
         <div class="row">
         <div class="col-md-2">
