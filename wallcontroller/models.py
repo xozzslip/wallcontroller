@@ -109,7 +109,7 @@ class Community(models.Model):
         if self.queue:
             self.access_token = self.queue.get(block=True)
         else:
-            self.access_token = self.moderator.vkapp_set.all()[0].access_token
+            self.access_token = self.moderator.vkapp_set.order_by('?')[0].access_token
 
     def release_token(self):
         if self.queue:
