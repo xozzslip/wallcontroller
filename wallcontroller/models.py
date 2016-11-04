@@ -33,8 +33,8 @@ class Community(models.Model):
     clean_only_new_posts = models.BooleanField(default=True)
 
     end_count = models.IntegerField(default=1)
-    end_time = models.IntegerField(default=60 * 60 * 5)
-    loyal_time = models.IntegerField(default=60 * 20)
+    end_time = models.IntegerField(default=60 * 60)
+    loyal_time = models.IntegerField(default=60 * 10)
 
     access_token = ""
     queue = None
