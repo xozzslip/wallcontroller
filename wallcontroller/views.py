@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 
 
 from .models import Community
-from .forms import AddCommunityForm
+from .forms import AddCommunityForm, ChangeCommunityForm
 
 
 @login_required(login_url=reverse_lazy('base:login'))
@@ -36,7 +36,14 @@ def add_community(request):
 def community(request, pk):
     template = "wallcontroller/community.html"
     community = Community.objects.get(pk=pk)
-    return render(request, template, {"community": community})
+    if request.method == 'POST':
+        form = ChangeCommunityForm(request.POST, instance=community)
+        if form.is_valid():
+            form.save()
+    else:
+        form = ChangeCommunityForm(instance=community)
+
+    return render(request, template, {"community": community, "form": form})
 
 
 @login_required(login_url=reverse_lazy('base:login'))
