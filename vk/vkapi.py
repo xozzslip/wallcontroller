@@ -11,7 +11,7 @@ MAX_PER_REQ = {
     "wall.getComments": 100,
 }
 
-SLEEP = 0.334
+SLEEP = 0.34
 
 
 class VkApi:
@@ -22,7 +22,7 @@ class VkApi:
     def request(self, method, parameters):
         url = "https://api.vk.com/method/%s?%s&access_token=%s&v=%s"
         url_with_parameters = url % (method, parameters, self.access_token, self.v)
-        response = requests.get(url_with_parameters, timeout=1.5)
+        response = requests.get(url_with_parameters, timeout=3)
         time.sleep(SLEEP)
         return json.loads(response.text)
 

@@ -72,7 +72,7 @@ class Community(models.Model):
                         if comment.post_date >= self.turnedon_ts]
         return comments
 
-    def find_trash_comments(self, comments_list):
+    def find_trash_comments_without_filtering(self, comments_list):
         deleting_comments_list = []
         for comment in comments_list:
             lifetime = comment.sync_ts - comment.creation_ts
@@ -81,9 +81,9 @@ class Community(models.Model):
                 deleting_comments_list.append(comment)
         return deleting_comments_list
 
-    def find_trash_comments_after_filtering(self, comments):
+    def find_trash_comments(self, comments):
         comments = self.filter_comments_on_new_posts(comments)
-        return self.find_trash_comments(comments, self.end_likes_count)
+        return self.find_trash_comments_without_filtering(comments)
 
     def delete_comments(self, comments):
         comments_vkrepr = [comment.vk_representation for comment in comments]
@@ -182,4 +182,4 @@ class Comment:
         self.vk_representation = vk_comment
 
     def __repr__(self):
-        return ("<Comment id: %s>" % self.vk_id)
+        return ("%s" % self.vk_id)

@@ -173,6 +173,8 @@ class TestDeletingComments(TestCase):
         trash = community_with_trash.find_trash_comments(comments)
         self.assertTrue(len(trash) > 0)
 
+        community_with_trash.leave()
+
 
 class TestModels(TestCase):
     def test_moderation_statuses(self):
@@ -204,6 +206,8 @@ class TestFunctionality(TestCase):
             vkapp = VkApp(access_token=token, account=TEST_ACCOUNT)
             vkapp.save()
 
+        cls.created_post_ids = {}
+
         cls.communities = {
             "c1": Community(
                 domen_name="131810670", user_owner=TEST_USER,
@@ -218,33 +222,58 @@ class TestFunctionality(TestCase):
             "c3": Community(
                 domen_name="132256693", user_owner=TEST_USER,
                 moderator=TEST_ACCOUNT, clean_only_new_posts=True,
-                end_count=10, end_time=20, loyal_time=10
+                end_count=10, end_time=20, loyal_time=100
+            ),
+            "c4": Community(
+                domen_name="125597415", user_owner=TEST_USER,
+                moderator=TEST_ACCOUNT, clean_only_new_posts=True,
+                end_count=100, end_time=20, loyal_time=0
             )
         }
 
         for c in cls.communities.values():
+            c.enable()
             c.save()
             c.acquire_token()
-            c.enable()
 
     def test_communities(self):
-        post_ids = {}
-        comment_ids = {}
+        old_comments = {}
         for name, community in self.communities.items():
-            post_ids[name] = community.create_post(test_settings.TEST_POST)
-            comment_ids[name] = community.api.create_comment(
+            old_comments[name] = community.get_comments()
+
+        created_comment_ids = {}
+        for name, community in self.communities.items():
+            self.created_post_ids[name] = community.create_post(test_settings.TEST_POST)
+            created_comment_ids[name] = community.api.create_comment(
                 text=test_settings.TEST_COMMENT,
-                post_id=post_ids[name]
+                post_id=self.created_post_ids[name]
             )
-        delete_comments.apply()
+        delete_comments.apply().get()
 
-        new_comments_ids = {}
+        new_comments = {}
         for name, community in self.communities.items():
-            new_comments_ids[name] = community.get_comments()
+            new_comments[name] = community.get_comments()
 
-        print(new_comments_ids)
-        print(comment_ids)
+        for name, community in self.communities.items():
+            new_comments_ids = [comment.vk_id for comment in new_comments[name]]
+            old_comments_ids = [comment.vk_id for comment in old_comments[name]]
+            created_comment_id = created_comment_ids[name]
+            self.assertTrue(created_comment_id not in old_comments_ids)
+            if name == "c1":
+                self.assertTrue(created_comment_id in new_comments_ids)
+                # checks that old comments was not deleted
+                self.assertTrue(max(old_comments_ids) in new_comments_ids)
+            elif name == "c2":
+                self.assertFalse(created_comment_id in new_comments_ids)
+                self.assertTrue(max(old_comments_ids) in new_comments_ids)
+            elif name == "c3":
+                self.assertTrue(created_comment_id in new_comments_ids)
+                self.assertTrue(max(old_comments_ids) in new_comments_ids)
+            elif name == "c4":
+                self.assertFalse(created_comment_id in new_comments_ids)
+                self.assertTrue(max(old_comments_ids) in new_comments_ids)
 
     @classmethod
     def tearDownClass(cls):
-        pass
+        for name, post_id in cls.created_post_ids.items():
+            cls.communities[name].delete_post(post_id)
